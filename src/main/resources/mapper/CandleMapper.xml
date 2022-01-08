@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="komasin4.finance.upbit.mapper.CandleMapper">
+    <select id="selectMinuteCandles" parameterType="map" resultType="komasin4.finance.upbit.model.MinuteCandleModel">
+        SELECT * 
+        FROM candle
+        <if test='candle_time != null'>
+	       	<![CDATA[
+        WHERE 
+        	candle_time <= #{candle_time}
+       		]]>
+        </if> 
+        ORDER BY candle_time DESC
+        LIMIT #{limit};
+    </select>
+    
+    <select id="selectMinuteCandle" resultType="komasin4.finance.upbit.model.MinuteCandleModel">
+        SELECT * FROM candle WHERE candle_time = #{candleTime};
+    </select>
+
+    <insert id="insertMinuteCandle" parameterType="komasin4.finance.upbit.model.MinuteCandleModel">
+        INSERT INTO candle
+			(
+			 candle_time 
+			,market
+			,candle_date_time_utc 
+			,candle_date_time_kst 
+			,opening_price
+			,high_price
+			,low_price 
+			,trade_price 
+			,timestamp
+			,candle_acc_trade_price 
+			,candle_acc_trade_volume 
+			,unit
+			,avg_5
+			,avg_20
+			,avg_60
+			,avg_120
+			,avg_240
+			,bb_upper
+			,bb_lower
+			) 
+        VALUES 
+			(
+			 REGEXP_REPLACE(SUBSTRING(#{candle_date_time_kst}, 1, 16), '[T:-]', '') 
+			,#{market}
+			,#{candle_date_time_utc}
+			,#{candle_date_time_kst} 
+			,#{opening_price}
+			,#{high_price}
+			,#{low_price }
+			,#{trade_price} 
+			,#{timestamp}
+			,#{candle_acc_trade_price}
+			,#{candle_acc_trade_volume} 
+			,#{unit}
+			,CALC_MA(REGEXP_REPLACE(SUBSTRING(#{candle_date_time_kst}, 1, 16), '[T:-]', ''), 5)
+			,CALC_MA(REGEXP_REPLACE(SUBSTRING(#{candle_date_time_kst}, 1, 16), '[T:-]', ''), 20)
+			,CALC_MA(REGEXP_REPLACE(SUBSTRING(#{candle_date_time_kst}, 1, 16), '[T:-]', ''), 60)
+			,CALC_MA(REGEXP_REPLACE(SUBSTRING(#{candle_date_time_kst}, 1, 16), '[T:-]', ''), 120)
+			,CALC_MA(REGEXP_REPLACE(SUBSTRING(#{candle_date_time_kst}, 1, 16), '[T:-]', ''), 240)
+			,CALC_BB_UPPER(candle_time, 20)
+			,CALC_BB_LOWER(candle_time, 20)
+			)
+    </insert>
+
+    <update id="updateMinuteCandle" parameterType="komasin4.finance.upbit.model.MinuteCandleModel">
+        UPDATE candle SET
+			opening_price = #{opening_price} 
+			,high_price = #{high_price} 
+			,low_price = #{low_price} 
+			,trade_price = #{trade_price} 
+			,timestamp = #{timestamp} 
+			,candle_acc_trade_price = #{candle_acc_trade_price} 
+			,candle_acc_trade_volume = #{candle_acc_trade_volume} 
+			,avg_5 = CALC_MA(REGEXP_REPLACE(SUBSTRING(#{candle_date_time_kst}, 1, 16), '[T:-]', ''), 5)
+			,avg_20 = CALC_MA(REGEXP_REPLACE(SUBSTRING(#{candle_date_time_kst}, 1, 16), '[T:-]', ''), 20)
+			,avg_60 = CALC_MA(REGEXP_REPLACE(SUBSTRING(#{candle_date_time_kst}, 1, 16), '[T:-]', ''), 60)
+			,avg_120 = CALC_MA(REGEXP_REPLACE(SUBSTRING(#{candle_date_time_kst}, 1, 16), '[T:-]', ''), 120)
+			,avg_240 = CALC_MA(REGEXP_REPLACE(SUBSTRING(#{candle_date_time_kst}, 1, 16), '[T:-]', ''), 240)
+			,bb_upper = CALC_BB_UPPER(candle_time, 20)
+			,bb_lower = CALC_BB_LOWER(candle_time, 20)
+		WHERE candle_time = REGEXP_REPLACE(SUBSTRING(#{candle_date_time_kst}, 1, 16), '[T:-]', '');
+    </update>
+
+    <insert id="insertMinuteCandle30" parameterType="komasin4.finance.upbit.model.MinuteCandleModel">
+        INSERT INTO candle_30
+			(candle_time 
+			,market
+			,candle_date_time_utc 
+			,candle_date_time_kst 
+			,opening_price
+			,high_price
+			,low_price 
+			,trade_price 
+			,timestamp 
+			,candle_acc_trade_price 
+			,candle_acc_trade_volume 
+			,unit) 
+        VALUES 
+			(REGEXP_REPLACE(SUBSTRING(#{candle_date_time_kst}, 1, 16), '[T:-]', '') 
+			,#{market}
+			,#{candle_date_time_utc}
+			,#{candle_date_time_kst} 
+			,#{opening_price}
+			,#{high_price}
+			,#{low_price }
+			,#{trade_price} 
+			,#{timestamp}
+			,#{candle_acc_trade_price}
+			,#{candle_acc_trade_volume} 
+			,#{unit})
+    </insert>
+	<!--     
+    <insert id="insertCandles">
+        INSERT INTO candle (market, unit) values (#{market}, #{unit})
+    </insert>
+    -->
+</mapper>
