@@ -8,7 +8,9 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -135,9 +137,11 @@ public class CandleService {
 	
 	
 	public List<DayCandleModel> getDayCandle()	{
-		logger.debug("Get DayCandle");
+		//logger.debug("Get DayCandle");
 		List<DayCandleModel> rtnList = new ArrayList<DayCandleModel>();
 		String authenticationToken = AuthUtil.getAuthToken();
+
+		logger.debug("authenticationToken:" + authenticationToken);
 
 		try {
 			HttpClient client = HttpClientBuilder.create().build();
@@ -213,38 +217,51 @@ public class CandleService {
 		return rtnList;
 	}
 	
-	public List<MinuteCandleModel> getCandlesFromDB (String candle_time, int limit)	{
-		List<MinuteCandleModel> candles = new ArrayList<MinuteCandleModel>();
-		try {
-			candles = candleMapper.selectMinuteCandles(candle_time, limit);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return candles;
-	}
-	
-	public MinuteCandleModel getCandleFromDB(String dateString) 	{
-		MinuteCandleModel candle = null;
-		try {
-			candle = candleMapper.selectMinuteCandle(dateString);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			logger.error("message", e);
-		}
-		return candle;
-	}
-
-	public int updateCandle(MinuteCandleModel candle) 	{
-		int rtn = -1;
-		try {
-			rtn = candleMapper.updateMinuteCandle(candle);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			logger.error("message", e);
-		}
-		return rtn;
-	}
+//	public List<MinuteCandleModel> getCandlesFromDB (String candle_time, int limit)	{
+//		List<MinuteCandleModel> candles = new ArrayList<MinuteCandleModel>();
+//		try {
+//			candles = candleMapper.selectMinuteCandles(candle_time, limit);
+//		} catch (Exception e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//		return candles;
+//	}
+//	
+//	public Map<String, Double> getMaxMinValue(String candle_time, int limit)	{
+//		Map<String, Double> map = new HashMap<String, Double>();
+//		try {
+//			map = candleMapper.selectMaxMinValue(candle_time, limit);
+//		} catch (Exception e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//		return map;
+//		
+//		
+//	}
+//	
+//	public MinuteCandleModel getCandleFromDB(String dateString) 	{
+//		MinuteCandleModel candle = null;
+//		try {
+//			candle = candleMapper.selectMinuteCandle(dateString);
+//		} catch (Exception e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//			logger.error("message", e);
+//		}
+//		return candle;
+//	}
+//
+//	public int updateCandle(MinuteCandleModel candle) 	{
+//		int rtn = -1;
+//		try {
+//			rtn = candleMapper.updateMinuteCandle(candle);
+//		} catch (Exception e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//			logger.error("message", e);
+//		}
+//		return rtn;
+//	}
 }

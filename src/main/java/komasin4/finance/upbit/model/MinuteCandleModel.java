@@ -7,7 +7,7 @@ public class MinuteCandleModel extends CommonCandleModel {
 	
 	private Logger logger = LoggerFactory.getLogger(this.getClass());
 	
-	String candle_time;
+	String candle_time = new String();
 	int unit;
 	
 	double avg_5;
@@ -21,7 +21,7 @@ public class MinuteCandleModel extends CommonCandleModel {
 	public String getCandle_time() {
 		if(candle_date_time_kst != null && candle_date_time_kst.length() > 15)	{
 			candle_time = candle_date_time_kst.substring(0, 16).replaceAll("[^0-9]","");
-		}
+		} 
 		return candle_time;
 	}
 

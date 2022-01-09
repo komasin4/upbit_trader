@@ -35,6 +35,32 @@
             <pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
+    <appender name="MONITOR" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- rollover daily -->
+            <fileNamePattern>logs/upbit-monitor-%d{yyyy-MM-dd}.%i.log.zip</fileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <!-- or whenever the file size reaches 100MB -->
+                <maxFileSize>100MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+    <appender name="CANDLE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- rollover daily -->
+            <fileNamePattern>logs/upbit-candle-%d{yyyy-MM-dd}.%i.log.zip</fileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <!-- or whenever the file size reaches 100MB -->
+                <maxFileSize>100MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <layout class="ch.qos.logback.classic.PatternLayout">
             <Pattern>%d{HH:mm:ss.SSS} [%-5level] [%thread] - %msg%n</Pattern>
@@ -57,11 +83,19 @@
     <logger name="org.mybatis.spring" level="INFO">
     </logger>
 
-    <logger name="komasin4.finance" level="INFO">
+    <logger name="komasin4.finance.upbit" level="INFO">
     </logger>
     
     <logger name="komasin4.finance.upbit.mapper" level="INFO">
     </logger>
+
+	<logger name="komasin4.finance.upbit.scheduler.MonitorScheduler" level="INFO">
+  		<appender-ref ref="MONITOR" />
+	</logger>
+
+	<logger name="komasin4.finance.upbit.scheduler.GetCandleScheduler" level="INFO">
+  		<appender-ref ref="CANDLE" />
+	</logger>
 
     <root level="INFO">
        <appender-ref ref="ROLLING"/>

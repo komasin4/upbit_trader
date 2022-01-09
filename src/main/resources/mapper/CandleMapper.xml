@@ -4,6 +4,21 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="komasin4.finance.upbit.mapper.CandleMapper">
+
+    <select id="selectMaxMinValue" parameterType="map" resultType="map">
+    	SELECT MAX(trade_price) as maxPrice, MIN(trade_price) as minPrice
+    	FROM (
+	        SELECT trade_price
+	        FROM candle
+	        WHERE 
+		       	<![CDATA[
+	        	candle_time < #{candle_time}
+	       		]]>
+	        ORDER BY candle_time DESC
+	        LIMIT #{limit}
+	        ) AS TMP;
+    </select>
+
     <select id="selectMinuteCandles" parameterType="map" resultType="komasin4.finance.upbit.model.MinuteCandleModel">
         SELECT * 
         FROM candle
@@ -120,4 +135,39 @@
         INSERT INTO candle (market, unit) values (#{market}, #{unit})
     </insert>
     -->
+    <insert id="insertTradeQueue" parameterType="komasin4.finance.upbit.model.SignalModel">
+        INSERT INTO trade_queue
+			(
+			 time_utc
+			,time_kst 
+			,signal_type
+			,signal_price
+			,volume
+			) 
+        VALUES 
+			(
+			 #{time_utc}
+			,#{time_kst}
+			,#{signal_type} 
+			,#{signal_price}
+			,#{volume}
+			)
+    </insert>
+    
+    <select id="selectTradeQueue" parameterType="double" resultType="komasin4.finance.upbit.model.SignalModel">
+        SELECT * 
+        FROM trade_queue
+        WHERE trade_flag = 'N'
+        <![CDATA[
+          AND signal_price < #{signal_price} 
+   		]]>
+    </select>
+    
+    <update id="updateTradeQueue" parameterType="komasin4.finance.upbit.model.SignalModel">
+        UPDATE trade_queue SET
+			trade_flag = 'Y'
+		   ,up_signal_type = #{up_signal_type}
+		   ,up_signal_price = #{up_signal_price}
+		WHERE trade_no = #{trade_no};
+    </update>
 </mapper>

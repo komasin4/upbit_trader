@@ -2,182 +2,445 @@ package komasin4.finance.upbit.scheduler;
 
 import java.text.DecimalFormat;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
+import komasin4.finance.upbit.mapper.CandleMapper;
 import komasin4.finance.upbit.model.DayCandleModel;
 import komasin4.finance.upbit.model.MinuteCandleModel;
+import komasin4.finance.upbit.model.OrderModel;
+import komasin4.finance.upbit.model.SignalModel;
 import komasin4.finance.upbit.service.CandleService;
+import komasin4.finance.upbit.service.OrderService;
 import komasin4.finance.upbit.util.DateUtil;
 
 @Service
-@Profile("local")
+//@Profile({"real", "local", "office"})
 public class MonitorScheduler {
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
 	@Autowired
 	CandleService candleService;
 
+	@Autowired
+	CandleMapper candleMapper;
+	
+	@Autowired
+	OrderService orderService;
+
 	DecimalFormat currency = new DecimalFormat("###,###");
 	DecimalFormat round = new DecimalFormat("#.##");
+	DecimalFormat vol = new DecimalFormat("#.########");
 
-	private String prevCandleTime; 
-	private int prevCandleLocation = 0;
-	private Double prevPrice = 0.0;
-	
-	//private boolean isNewCandle = false; //new캔들일 경우 oldLoction 갱신
-	
-	
 	private DayCandleModel todayCandle;
-	private int location = 0;  //4.BB상단이상, 3.BB상단~20선이상, 2.20선~BB하단이하, 1.BB하단
-	private int signalType = 0; //1.매수 2.매도
-	private boolean bSignal = false;
+
+	private MinuteCandleModel snapShotCandle;
+
+	private String finalSignalMinTime;
+	private double finalSignalMinValue = 0;
+	private String finalSignalMaxTime;
+	private double finalSignalMaxValue = 0;
+	private int checkCount = 0;
 	
+	private boolean b20SellSig = true;		//********** 20선 매도 시그널 발생 여부
+	private boolean bBBSellSig = true;
+	private boolean bMAXSellSig  = true;
+	private boolean bBBBuySig  = true;
+	private boolean b20BuySig  = true;
+	private boolean bMINBuySig  = true;
 	
-	private int signalCount = 0;
-	private int signalLimit = 0;
-	private double finalSignalValue = 0;
+	private boolean bSignal20Sell = true;
 	
-	//@Scheduled(cron = "*/1 * * * * ?")
-	//@Scheduled(initialDelay = 1000, fixedRate = 100)
-	@Scheduled(initialDelay = 1000, fixedRate = 10000)
+	private double buyMinPrice = 0;
+
+	//	private int signalType = 0; //2.매도(BB) 1.매도(20), -1.매수(20), -2.매수(BB)
+	//	private int signalCount = 0;
+	//	private double finalSignalValue = 0;
+
+//	private int finalSignalType_Line = 0;
+//	
+//	
+//	//private int signalBBCount = 0;
+//	//private int signal20Count = 0;
+//	private double signalBuyValue20 = 0;
+	private double signalBuyValueBB = 0;
+	private double signalBuyValueMIN = 0;
+//
+//	
+	private double price_unit = 1000;   //호가단위 1,000원
+	private double volume_unit = 100000; //**********매수단위 10,000원
+	private double incomeLimitPercent = 0.002; //**********매수 가격보다 incomeLimit 만큼 비싸게 팔아야 수수료 빼고 수익
+	
+	private int multi_BB = 2;	//********** BB 하단 도달시 매수 비율 (volume_unit * multi_BB)
+	private int multi_MIN = 3;  //********** 최저가 도달시 매수 비율 (volume_unit * multi_MIN)
+	
+	private int iMinBaseUnit = 120;	//**********최저가 기준 봉 갯수
+	
+	public double getMinBaseUnit()	{
+		return iMinBaseUnit;
+	}
+
+	public double getIcomeLimitPercent()	{
+		return incomeLimitPercent;
+	}
+
+	public boolean getSignal20Sell()	{
+		return bSignal20Sell;
+	}
+	
+	public double getVolumeUnit()	{
+		return volume_unit;
+	}
+
+	public double getMultiBB()	{
+		return multi_BB;
+	}
+
+	public double getMultiMIN()	{
+		return multi_MIN;
+	}
+
+	public void setMinBaseUnit(int value){
+		iMinBaseUnit = value;
+		try {
+			updateMaxMinValue();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		logger.info("set iMinBaseUnit = " + iMinBaseUnit);
+	}
+
+	public void setMultiBB(int value)	{
+		multi_BB = value;
+		logger.info("set multi_BB = " + multi_BB);
+	}
+
+	public void setMultiMIN(int value)	{
+		multi_MIN = value;
+		logger.info("set multi_MIN = " + multi_MIN);
+	}
+
+	public void setSignal20Sell(boolean bSet)	{
+		bSignal20Sell = bSet;
+		logger.info("set bSignal20Sell = " + bSignal20Sell);
+	}
+
+	public void setVolumeUnit(double value)	{
+		volume_unit = value;
+		logger.info("set volume_unit = " + volume_unit);
+	}
+
+	public void setIncomeLimitPercent(double value)	{
+		incomeLimitPercent = value;
+		logger.info("set incomeLimitPercent = " + incomeLimitPercent);
+	}
+	
+	private void updateMaxMinValue() throws Exception	{
+		Map<String, Double> valueMap = candleMapper.selectMaxMinValue(snapShotCandle.getCandle_time(), iMinBaseUnit);
+		
+		finalSignalMaxValue = valueMap.get("maxPrice");
+		finalSignalMinValue = valueMap.get("minPrice");
+
+		logger.info("set finalSignalMaxValue = " + finalSignalMaxValue + ", finalSignalMinValue = " + finalSignalMinValue);
+	}
+
+	@Scheduled(initialDelay = 1000, fixedRate = 200)
 	public void startMonitor()	{
-		
-		List<MinuteCandleModel> candles = candleService.getCandlesFromDB(null, 2);
 
-		String candle_time = candles.get(0).getCandle_time();
+		try {
 
-		if(todayCandle == null)	{	//최초 실생시 일봉 데이터 가져옴
-			todayCandle = candleService.getDayCandle().get(0);
-		} else {
-			String todayCandleDate = todayCandle.getCandle_date_time_utc().substring(0, 10);
-			String currCandleDate=  candles.get(0).getCandle_date_time_utc().substring(0, 10);
-			//logger.info("UTC Time:" + todayCandle.getCandle_date_time_utc() + ":" + candles.get(0).getCandle_date_time_utc());
-			//logger.info("UTC Time:" + todayCandleDate + ":" + currCandleDate);
-			if(!todayCandleDate.equals(currCandleDate))	//날짜가 바뀌면 일봉 데이터 갱신
+			List<MinuteCandleModel> candles = candleMapper.selectMinuteCandles(null, 2);
+
+			MinuteCandleModel currCandle = candles.get(0);	
+			MinuteCandleModel lastCandle = candles.get(1);
+
+
+			if(todayCandle == null)	{	//최초 실생시 일봉 데이터 가져옴
 				todayCandle = candleService.getDayCandle().get(0);
-		}
-
-		//logger.debug("get data : " + candle_time + ":" + candles.get(0).getCandle_date_time_utc());
-		
-		candles.get(0).getAvg_20();
-		candles.get(0).getBb_lower();
-		candles.get(0).getBb_upper();
-		candles.get(0).getHigh_price();
-		candles.get(0).getLow_price();
-		candles.get(0).getOpening_price();
-		double currVal = candles.get(0).getTrade_price();
-
-		candles.get(1).getAvg_20();
-		candles.get(1).getBb_lower();
-		candles.get(1).getBb_upper();
-		candles.get(1).getHigh_price();
-		candles.get(1).getLow_price();
-		candles.get(1).getOpening_price();
-		double prevEndVal = candles.get(1).getTrade_price();
-
-		double diff = currVal - prevEndVal;
-		double daydiff = currVal - todayCandle.getPrev_closing_price();
-
-
-		//		logger.info("현재가:" + currency.format(currVal));
-
-		StringBuffer strBuff = new StringBuffer();
-
-		strBuff.append(currency.format(currVal))
-		.append(" ")
-		.append(daydiff>0?"+":"")
-		.append(round.format(daydiff/todayCandle.getPrev_closing_price() * 100))
-		.append(" ")
-		.append(currency.format(daydiff))
-		.append(" 분봉 ")
-		;
-
-		//logger.info("전일대비:" + (daydiff>0?"+":"") + round.format(daydiff/todayCandle.getPrev_closing_price() * 100) + ":" + daydiff);
-
-		if(diff > 0)	{
-			//logger.info("+" + currency.format(diff) + ":" + currency.format(currVal));
-			strBuff.append("+");
-		}
-
-		strBuff.append(currency.format(diff))
-		.append(" ")
-		.append(currency.format(candles.get(0).getBb_upper()))
-		.append(" ")
-		.append(currency.format(candles.get(0).getAvg_20()))
-		.append(" ")
-		.append(currency.format(candles.get(0).getBb_lower()))
-		.append(" locastion:")
-		.append(location);
-		;
-
-		//logger.info(strBuff.toString());
-
-		if(currVal >= candles.get(0).getBb_upper())	{
-			//if( prevEndVal < candles.get(1).getBb_upper())	{
-				if(location < 4 && location > 0 && signalType == 1)	{
-					//logger.info("매도시그널(BB)!! " + currency.format(currVal) + ":" + currency.format(candles.get(0).getBb_upper()));
-					signalType = 2;
-					signalCount = 0;
+				logger.info("초기데이터 저장 (일봉) : " + todayCandle.toString());
+			} else {
+				String todayCandleDate = todayCandle.getCandle_date_time_utc().substring(0, 10);
+				String currCandleDate =  currCandle.getCandle_date_time_utc().substring(0, 10);
+				if(!todayCandleDate.equals(currCandleDate))	{	//날짜가 바뀌면 일봉 데이터 갱신
+					todayCandle = candleService.getDayCandle().get(0);
+					logger.info("일봉데이터 변경 : " + todayCandle.toString());
 				}
-			//}
-			location = 4;
-		} else if(currVal >= candles.get(0).getAvg_20())	{
-			//if( prevEndVal < candles.get(1).getAvg_20())	{
-				if(location < 3 && location > 0 && signalType == 1)	{
-					//logger.info("매도시그널(20)!! " + currency.format(currVal) + ":" + currency.format(candles.get(0).getAvg_20()));
-					signalType = 2;
-					signalCount = 0;
-				}
-			//}
-			location = 3;
-		} else if (currVal <= candles.get(0).getAvg_20()){
-			//if( prevEndVal > candles.get(1).getAvg_20())	{
-				if(location > 2 && location > 0)	{
-					if(signalCount < 10 || (finalSignalValue - currVal)/finalSignalValue > (0.5/100) )	{
-						//logger.info("매수시그널(20)!! " + currency.format(currVal) + ":" + currency.format(candles.get(0).getAvg_20()) + ":" + signalCount);
-						signalType = 1;
-						finalSignalValue = currVal;
-						signalCount++;
+			}
+
+			if(snapShotCandle == null)	{	//최초 실행시 snapshot candle 초기화
+				snapShotCandle = currCandle;
+				logger.info("초기데이터 저장 (분봉) : " + currCandle.toString());
+			}
+
+			//BB 활용 매수/매도 타이밍 -- from
+			int location = getLocation(currCandle);
+			int snapshotLocation = getLocation(snapShotCandle);
+			int lastCandleLocation = getLocation(lastCandle);
+
+			int diff = location - lastCandleLocation;
+			int signalType = getSignalType(location, diff);
+			
+			
+			Map<String, Double> valueMap = candleMapper.selectMaxMinValue(currCandle.getCandle_time(), iMinBaseUnit);
+			
+			if(finalSignalMaxValue == 0)
+				finalSignalMaxValue = valueMap.get("maxPrice");
+			
+			if(finalSignalMinValue == 0)
+				finalSignalMinValue = valueMap.get("minPrice");
+			
+			if(currCandle.getTrade_price() > valueMap.get("maxPrice") && currCandle.getTrade_price() > finalSignalMaxValue)	{	//신고가
+				signalType = 100;
+			} else if(currCandle.getTrade_price() < valueMap.get("minPrice") && currCandle.getTrade_price() < finalSignalMinValue) {	//신저가
+				signalType = -100;
+			}
+
+			double order_price = 0;
+			double volume = 0;;
+			String side = "";
+
+			SignalModel signal = new SignalModel(currCandle.getCandle_date_time_utc(), currCandle.getCandle_date_time_kst(), signalType, currCandle.getTrade_price(), volume, "N");
+			
+			if(signalType == 2 && bBBSellSig)	{			//상승하여 BB상단 터치(매도)
+				logger.info("BB상단 터치 (매도)\t");
+				bBBSellSig = false;
+				b20SellSig = false;
+				bMAXSellSig  = true;
+				bBBBuySig	= true;
+				b20BuySig	= true;
+				bMINBuySig  = true;
+				side = "ask";
+				order_price = currCandle.getTrade_price() - price_unit;
+				List<SignalModel> sellList = candleMapper.selectTradeQueue(order_price - order_price * incomeLimitPercent);
+				logger.info("sellList size:" + sellList.size());
+				for(SignalModel sell : sellList)	{
+					logger.info(sell.getTime_kst() + ":" + sell.getSignal_type() + ":" + sell.getSignal_price());
+					OrderModel order = new OrderModel(side, order_price, sell.getVolume());
+					boolean bExcuteSell = orderService.order(order);
+					logger.debug("bExcuteSell:" + bExcuteSell);
+					if(bExcuteSell)	{
+						sell.setUp_signal_price(order_price);
+						sell.setUp_signal_type(signalType);
+						logger.info("update row:" + sell.getTrade_no() + ":" + candleMapper.updateTradeQueue(sell));
 					}
 				}
-			//}
-			location = 2;
-		} else if (currVal <= candles.get(0).getBb_lower()){
-			//if( prevEndVal > candles.get(1).getBb_lower())	{
-				if(location > 1 && location > 0)	{
-					if(signalCount < 10 || (finalSignalValue - currVal)/finalSignalValue > (0.5/100) )	{
-						//logger.info("매수시그널(BB)!! " + currency.format(currVal) + ":" + currency.format(candles.get(0).getBb_lower()) + ":" + signalCount);
-						signalType = 1;
-						finalSignalValue = currVal;
-						signalCount++;
+			} else if(signalType == 1 && b20SellSig && bSignal20Sell)	{	//상승하여 20선 터치(매도)
+//				bBBSellSig = true;
+//				b20SellSig = false;
+//				bMAXSellSig  = true;
+//				bBBBuySig	= true;
+//				b20BuySig	= true;
+//				bMINBuySig	= true;
+				side = "ask";
+				order_price = currCandle.getTrade_price() - price_unit;
+				List<SignalModel> sellList = candleMapper.selectTradeQueue(order_price - order_price * incomeLimitPercent);
+				//logger.info("sellList size:" + sellList.size());
+				int sellCnt = 0;
+				for(SignalModel sell : sellList)	{
+					logger.info(sell.getTime_kst() + ":" + sell.getSignal_type() + ":" + sell.getSignal_price());
+					OrderModel order = new OrderModel(side, order_price, sell.getVolume());
+					boolean bExcuteSell = orderService.order(order);
+					logger.debug("bExcuteSell:" + bExcuteSell);
+					if(bExcuteSell)	{
+						sell.setUp_signal_price(order_price);
+						sell.setUp_signal_type(signalType);
+						logger.info("update row:" + sell.getTrade_no() + ":" + candleMapper.updateTradeQueue(sell));
+						sellCnt++;
 					}
 				}
-			//}
-			location = 1;
+				if(sellCnt > 0)	{
+					logger.info("20선 터치 (매도)\t");
+					bBBSellSig = true;
+					b20SellSig = false;
+					bMAXSellSig  = true;
+					bBBBuySig	= true;
+					b20BuySig	= true;
+					bMINBuySig	= true;
+				} else {
+					
+				}
+			} else if(signalType == 100 && bMAXSellSig){	//신고가(매도)
+				logger.info("신고가(매도)\t");
+				bBBSellSig = false;
+				b20SellSig = false;
+				bMAXSellSig  = false;
+				bBBBuySig	= true;
+				b20BuySig	= true;
+				bMINBuySig	= true;
+				side = "ask";
+				order_price = currCandle.getTrade_price() - price_unit;
+				List<SignalModel> sellList = candleMapper.selectTradeQueue(order_price - order_price * incomeLimitPercent);
+				logger.info("sellList size:" + sellList.size());
+				for(SignalModel sell : sellList)	{
+					logger.info(sell.getTime_kst() + ":" + sell.getSignal_type() + ":" + sell.getSignal_price());
+					OrderModel order = new OrderModel(side, order_price, sell.getVolume());
+					boolean bExcuteSell = orderService.order(order);
+					logger.debug("bExcuteSell:" + bExcuteSell);
+					if(bExcuteSell)	{
+						sell.setUp_signal_price(order_price);
+						sell.setUp_signal_type(signalType);
+						logger.info("update row:" + sell.getTrade_no() + ":" + candleMapper.updateTradeQueue(sell));
+					}
+				}
+			} else if(signalType == -1 && b20BuySig)	{	//하락하여 20선 터치(매수)
+				logger.info("20선 터치 (매수)\t");
+				bBBSellSig = true;
+				b20SellSig = false;
+				bMAXSellSig  = true;
+				bBBBuySig	= true;
+				b20BuySig	= false;
+				bMINBuySig	= true;
+				side = "bid";
+				order_price = currCandle.getTrade_price() + price_unit;
+				volume = volume_unit/order_price;
+				signal.setVolume(volume);
+				OrderModel order = new OrderModel(side, order_price, signal.getVolume());
+				boolean bExcuteSell = orderService.order(order);
+				if(bExcuteSell)
+					candleMapper.insertTradeQueue(signal);
+				//candleMapper.updateTradeQueue(signal.getTrade_no());
+			} else if(signalType == -2 && (bBBBuySig || (signalBuyValueBB-order_price)/signalBuyValueBB < (0.3/100)))	{	//하락하여 BB하단 터치(매수)
+				logger.info("BB하단 터치(매수)\t");
+				bBBSellSig = true;
+				b20SellSig = true;
+				bMAXSellSig  = true;
+				bBBBuySig	= false;
+				b20BuySig	= false;
+				bMINBuySig	= true;
+				side = "bid";
+				order_price = currCandle.getTrade_price() + price_unit;
+				volume = volume_unit*multi_BB/order_price;
+				signal.setVolume(volume);
+				OrderModel order = new OrderModel(side, order_price, signal.getVolume());
+				boolean bExcuteSell = orderService.order(order);
+				if(bExcuteSell)
+					candleMapper.insertTradeQueue(signal);
+				signalBuyValueBB = order_price;
+				//candleMapper.updateTradeQueue(signal.getTrade_no());
+			} else if(signalType == -100 && (bMINBuySig || (signalBuyValueMIN-order_price)/signalBuyValueMIN < (0.3/100))){	//신저가(매수)
+				logger.info("신저가(매수)\t");
+				bBBSellSig = true;
+				b20SellSig = true;
+				bMAXSellSig  = true;
+				bBBBuySig	= false;
+				b20BuySig	= false;
+				bMINBuySig	= false;
+				buyMinPrice = order_price;
+				side = "bid";
+				order_price = currCandle.getTrade_price() + price_unit;
+				volume = volume_unit*multi_MIN/order_price;
+				signal.setVolume(volume);
+				OrderModel order = new OrderModel(side, order_price, signal.getVolume());
+				boolean bExcuteSell = orderService.order(order);
+				if(bExcuteSell)
+					candleMapper.insertTradeQueue(signal);
+				signalBuyValueMIN = order_price;
+				//candleMapper.updateTradeQueue(signal.getTrade_no());
+			}
+			
+			if("bid".equals(side))	{			//매수
+				
+			} else if ("ask".equals(side))	{	//매도
+				
+			}
+				
+			
+			String strSignals = signalType + "\t" + bBBSellSig + "\t" + b20SellSig + "\t" + bMAXSellSig + "\t" + bBBBuySig + "\t" + b20BuySig + "\t" + bMINBuySig
+					+ "\t" + side + "\t" + currency.format(order_price) + "\t" + vol.format(volume);
+			
+			if (currCandle.getTrade_price() != snapShotCandle.getTrade_price()) {
+				logger.info(checkCount + "\t" + strSignals + "\t" + currCandle.getCandle_time() + "\t" + currency.format(currCandle.getTrade_price()) + "\t" + currency.format((currCandle.getTrade_price() - todayCandle.getPrev_closing_price())) + "\t\t" + location + "\t" + currency.format(currCandle.getBb_upper()) + "\t"  + currency.format(currCandle.getAvg_20()) + "\t" + currency.format(currCandle.getBb_lower()) + "\t" + currency.format(signalBuyValueBB) + "\t" + currency.format(signalBuyValueMIN) + "\t" + currency.format(finalSignalMaxValue) + "\t" + currency.format(finalSignalMinValue));
+			} else if (checkCount%100 == 0) {
+				logger.info(checkCount + "\t" + strSignals + "\t" + currCandle.getCandle_time() + "\t" + currency.format(currCandle.getTrade_price()) + "\t" + currency.format((currCandle.getTrade_price() - todayCandle.getPrev_closing_price())) + "\t\t" + location + "\t" + currency.format(currCandle.getBb_upper()) + "\t"  + currency.format(currCandle.getAvg_20()) + "\t" + currency.format(currCandle.getBb_lower()) + "\t" + currency.format(signalBuyValueBB) + "\t" + currency.format(signalBuyValueMIN) + "\t" + currency.format(finalSignalMaxValue) + "\t" + currency.format(finalSignalMinValue));
+			}
+
+
+			//이전 봉에서 신저가 발생시 신저가를 종가로 update 해즘.
+			if(lastCandle.getCandle_time().equals(finalSignalMinTime))
+				finalSignalMinValue = lastCandle.getTrade_price();
+
+			if(lastCandle.getCandle_time().equals(finalSignalMaxTime))
+				finalSignalMaxValue = lastCandle.getTrade_price();
+
+			
+			//분봉이 결정되면 매도 signal reset
+			if(!currCandle.getCandle_time().equals(snapShotCandle.getCandle_time()))	{
+				bBBSellSig = true;
+				b20SellSig = true;
+				bMAXSellSig  = true;
+			}
+
+			checkCount++;
+			snapShotCandle = currCandle;	//다음 스케쥴에서 활용하기 위해 현재 candle 저장
+		} catch (Exception e)	{
+			logger.error("message", e);
 		}
+	}
 
-		
-		//분봉이 FIX 되고 새로운 분봉이 시작하게 되면 oldPostion기록
-		
-		logger.debug(candle_time + ":" + prevCandleTime);
-		
-		if(!candle_time.equals(prevCandleTime))	{
-			prevCandleTime = candle_time;
-			prevCandleLocation = location;
-			logger.debug("새 분봉 시작. 이전 캔들타임/위치 갱신\t" + DateUtil.convertToDateString(prevCandleTime) + "\t" + currency.format(prevPrice) + " -> " + currency.format(currVal) + "\t" + prevCandleLocation);
-			prevPrice = currVal;
+	private int getSignalType(int location, int diff)	{
+		int signal = 0;
+
+		switch(location)	{
+		case(3):				//BB상단 위
+			if(diff > 0)		//상승하여 BB 상단 터치 - 매도
+				signal = 2;
+			break;
+		case(2):				//BB상단
+			if(diff > 0)		//상승하여 BB상단 터치 - 매도
+				signal = 2;
+			break;
+		case(1):				//20선 위
+			if(diff > 0)		//상승하여 20선 터치 - 매도
+				signal = 1;
+			break;
+		case(0):				//20선
+			if(diff > 0)		//상승 하여 20선 터치 - 매도
+				signal = 1;		
+			else if(diff < 0)	//하락하여 20선 터치 - 매수
+				signal = -1;
+			break;
+		case(-1):				//20선 아래
+			if(diff < 0)		//하락하여 20선 터치 - 매수
+				signal = -1;
+			break;
+		case(-2):				//BB하단
+			if(diff < 0)		//하락하여 BB하단 - 매수
+				signal = -2;
+			break;
+		case(-3):				//BB하단 아래
+			if(diff < 0)		//하락하여 BB하단 - 매수
+				signal = -2;
+			break;
 		}
+		return signal;
+	}
 
+	private int getLocation(MinuteCandleModel candle)	{
+		int rtnLocation = 0;
 		
-		//logger.info(location + " --------------------");
+		if(candle.getTrade_price() > candle.getBb_upper())
+			rtnLocation = 3;
+		else if(candle.getTrade_price() == candle.getBb_upper())
+			rtnLocation = 2;
+		else if(candle.getTrade_price() > candle.getAvg_20())
+			rtnLocation = 1;
+		else if(candle.getTrade_price() == candle.getAvg_20())
+			rtnLocation = 0;
+		else if(candle.getTrade_price() < candle.getBb_lower())
+			rtnLocation = -3;
+		else if(candle.getTrade_price() == candle.getBb_lower())
+			rtnLocation = -2;
+		else if(candle.getTrade_price() < candle.getAvg_20())
+			rtnLocation = -1;
 
-		//logger.info(currency.format(prevEndVal) + "->" + currency.format(currVal) + ":" + currency.format(diff));
-		//logger.info(currency.format(todayCandle.getPrev_closing_price()) + ":" + daydiff + ":" + daydiff/todayCandle.getPrev_closing_price()*100 + "%");
+		return rtnLocation;
 	}
 }

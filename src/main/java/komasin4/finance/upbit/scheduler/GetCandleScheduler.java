@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import komasin4.finance.upbit.mapper.CandleMapper;
 import komasin4.finance.upbit.model.MinuteCandleModel;
 import komasin4.finance.upbit.service.CandleService;
 import komasin4.finance.upbit.util.DateUtil;
@@ -24,6 +25,9 @@ public class GetCandleScheduler {
 	
 	@Autowired
 	CandleService candleService;
+	
+	@Autowired
+	CandleMapper candleMapper;
 	
 	//@Scheduled(cron = "*/1 * * * * ?")
 	//@Scheduled(cron = "*/1 * * * * ?")
@@ -52,7 +56,17 @@ public class GetCandleScheduler {
 			
 			MinuteCandleModel candle = candles.get(i);
 			
-			MinuteCandleModel oldCandle = candleService.getCandleFromDB(candle.getCandle_time());
+			//MinuteCandleModel oldCandle = candleService.getCandleFromDB(candle.getCandle_time());
+			MinuteCandleModel oldCandle = null;
+			
+			try {
+				oldCandle = candleMapper.selectMinuteCandle(candle.getCandle_time());
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				logger.error("message", e);
+			}
+			
 			if(oldCandle != null)	{
 				oldCandle.toString();
 				logger.debug("[" + index + "]:" + "db:" + oldCandle.toString());
@@ -60,7 +74,14 @@ public class GetCandleScheduler {
 				if(isCandleChanged(candle, oldCandle)) { // 캔들업데이트 필요
 					logger.debug("[" + index + "]:" + "api(update):" + candle.toString());
 					logger.debug("[" + index + "]:" + "candle updated!!!");
-					candleService.updateCandle(candle);
+					//candleService.updateCandle(candle);
+					try {
+						candleMapper.updateMinuteCandle(candle);
+					} catch (Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+						logger.error("message", e);
+					}
 				}
 			}
 			else	{ 
