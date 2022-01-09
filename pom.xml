@@ -9,7 +9,7 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>komasin4.finance</groupId>
-	<artifactId>komasin4_upbit</artifactId>
+	<artifactId>upbit-trader</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>war</packaging>
 	<name>komasin4_upbit</name>
