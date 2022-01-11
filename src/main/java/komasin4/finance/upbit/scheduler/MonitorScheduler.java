@@ -61,6 +61,9 @@ public class MonitorScheduler {
 				logger.info("초기데이터 저장 (분봉) : " + currCandle.toString());
 			}
 			
+			
+			//이동평균선/볼린저밴드 활용한 매수/매도 신호 체크 -- from
+			
 			//현재 가격의 위치를 가져옴.
 			// 3 : BB상한의 위
 			// 2 : BB상한
@@ -79,13 +82,42 @@ public class MonitorScheduler {
 			//이전분봉기준으로 신호 발생 여부 체크
 			int iSignal = getSignalType(currLocation, diff);
 			
-			logger.info("(%d) Location:%d->%d", iSignal, lastLocation, currLocation);
+			logger.info("{} ({}) Location : {} -> {}"
+					, (iSignal>0?"매도":iSignal<0?"매수":"관망")
+					, iSignal
+					, lastLocation
+					, currLocation);
+			
+			if(iSignal > 0)		{		//매도신호 처리
+				
+			} else if(iSignal < 0)	{   //매수신호 처리
+				//동일봉에서 신호 발생 여부 확인
+				if(true)	{
+					//같은 봉에서 신호 발생 할 경우 ??% 이상 차이가 가면 처리.. 아니면 패스.
+				}
+				
+			}
+			//이동평균선/볼린저밴드 활용한 매수/매도 신호 체크 -- from
+			
+			
+			//신저가/신고가 활용 매수/매도 신호 체크 -- from
+			
+			
+			
+			
+			//1.신저가 발생시 매수 신호 발생
+			//직전 매수 신호 보다 ?? % 이하 일 경우만 매수 처리. 아니면 패스 
+			
+			//신저가/신고가 활용 매수/매도 신호 체크 -- to
+			
+			
+			//매도 신호 발생 했을 경우 이전 매수 신호 리셋.
+			
+			//누적 매수 금액이 XX 일 경우 매수 보류 ?
 			
 			
 			checkCount++;
 			snapShotCandle = currCandle;	//다음 스케쥴에서 활용하기 위해 현재 candle 저장
-
-			logger.debug("---------------------------------------");
 		} catch (Exception e)	{
 			logger.error("message", e);
 		}
