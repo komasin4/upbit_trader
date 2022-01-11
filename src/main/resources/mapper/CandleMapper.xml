@@ -16,4 +16,19 @@
         ORDER BY candle_time DESC
         LIMIT #{limit};
     </select>
+    
+    <select id="selectMaxMinValue" parameterType="map" resultType="map">
+    	SELECT MAX(trade_price) as maxPrice, MIN(trade_price) as minPrice
+    	FROM (
+	        SELECT trade_price
+	        FROM candle
+	        WHERE 
+		       	<![CDATA[
+	        	candle_time < #{candle_time}
+	       		]]>
+	        ORDER BY candle_time DESC
+	        LIMIT #{limit}
+	        ) AS TMP;
+    </select>
+    
 </mapper>

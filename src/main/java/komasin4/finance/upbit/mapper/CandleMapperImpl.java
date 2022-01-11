@@ -22,4 +22,13 @@ public class CandleMapperImpl implements CandleMapper {
 		paramMap.put("limit", limit);
 		return session.selectList("selectMinuteCandles", paramMap);
 	}
+	
+	@Override
+	public Map<String, Double> selectMaxMinValue(String candle_time, int limit) throws Exception {
+		// TODO Auto-generated method stub
+		Map<String, Object> paramMap = new HashMap<String,Object>();
+		paramMap.put("candle_time",  candle_time);
+		paramMap.put("limit", limit);
+		return session.selectOne("selectMaxMinValue", paramMap);
+	}
 }
