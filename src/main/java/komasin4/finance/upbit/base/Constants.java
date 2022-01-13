@@ -9,4 +9,6 @@ public class Constants {
 	private int 	multi_BB			= 2;		//BB 하단 도달시 매수 비율	(volume_unit * multi_BB)
 	private int		multi_MIN			= 3;  		//최저가 도달시 매수 비율  	(volume_unit * multi_MIN)
 	private int		iMinBaseUnit		= 120;		//최저가 기준 봉 갯수
+
+	final public static String telegramUrl = "https://api.telegram.org/bot";
 }

@@ -9,7 +9,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import com.google.gson.Gson;
+
 import komasin4.finance.upbit.scheduler.MonitorScheduler;
+import komasin4.finance.upbit.service.SendMessageService;
 
 @Controller
 public class MainController {
@@ -22,6 +25,9 @@ public class MainController {
 	
 	@Autowired
 	MonitorScheduler monitor;
+	
+	@Autowired
+	SendMessageService sendMessageService;
 	
 	@GetMapping("/test")
 	public String test()	{
@@ -47,5 +53,10 @@ public class MainController {
 		monitor.start(iFixedRate);
 		
 		return "cancel";
+	}
+	
+	@GetMapping("/send")
+	public @ResponseBody String sendMessage(@RequestParam(value="txt") String sMessage)		{
+		return new Gson().toJson(sendMessageService.send(sMessage));
 	}
 }

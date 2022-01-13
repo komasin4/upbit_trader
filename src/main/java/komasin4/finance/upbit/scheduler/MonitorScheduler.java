@@ -11,13 +11,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.TaskScheduler;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import komasin4.finance.upbit.mapper.CandleMapper;
 import komasin4.finance.upbit.model.DayCandleModel;
 import komasin4.finance.upbit.model.MinuteCandleModel;
 import komasin4.finance.upbit.service.CandleService;
+import komasin4.finance.upbit.service.SendMessageService;
 
 @Service
 //@Profile({"real", "local", "office"})
@@ -26,6 +26,9 @@ public class MonitorScheduler {
 	
 	@Autowired 
 	private TaskScheduler taskScheduler;
+	
+	@Autowired
+	SendMessageService sendMessageService;
 
 	@Autowired
 	CandleMapper candleMapper;
@@ -145,6 +148,10 @@ public class MonitorScheduler {
 					logger.debug("이평선({} 매수): {} : {} : {}", iSignal, cFormat.format(currCandle.getTrade_price()), cFormat.format(lastBuySignalPrice), (lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice * 100);
 					
 					lastBuySignalPrice = currCandle.getTrade_price();
+					
+					String sSend = "이평선 도달 매수 / " + iSignal + " / " +  cFormat.format(currCandle.getTrade_price() + " / " + cFormat.format(lastBuySignalPrice) + " / " + (lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice * 100 + " / " + fallRate);
+					sendMessageService.send(sSend);
+					
 							
 					bBuy = true;
 					
@@ -165,7 +172,7 @@ public class MonitorScheduler {
 				setMinMaxPrice(currCandle);
 			}
 			
-			if(checkCount % 10 == 0)
+			if(checkCount % 100 == 0)
 				logger.info("신고가:신저가:" + cFormat.format(lastMaxPrice) + ":" + cFormat.format(lastMinPrice));
 			
 			
@@ -179,6 +186,9 @@ public class MonitorScheduler {
 					lastBuySignalPrice = currCandle.getTrade_price();
 							
 					bBuy = true;
+
+					String sSend = "신저가 도달 매수 " + iSignal + " " +  cFormat.format(currCandle.getTrade_price());
+					sendMessageService.send(sSend);
 					
 				} else {
 					logger.debug("신저가(패스): {} : {} : {}", cFormat.format(currCandle.getTrade_price()), cFormat.format(lastBuySignalPrice), (lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice * 100);
