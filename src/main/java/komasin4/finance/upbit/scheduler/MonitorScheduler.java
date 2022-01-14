@@ -75,11 +75,11 @@ public class MonitorScheduler {
 //
 //	
 	private double price_unit = 1000;   //호가단위 1,000원
-	private double volume_unit = 100000; //**********매수단위 10,000원
+	private double volume_unit = 15000; //**********매수단위 15,000원
 	private double incomeLimitPercent = 0.002; //**********매수 가격보다 incomeLimit 만큼 비싸게 팔아야 수수료 빼고 수익
 	
 	private int multi_BB = 2;	//********** BB 하단 도달시 매수 비율 (volume_unit * multi_BB)
-	private int multi_MIN = 3;  //********** 최저가 도달시 매수 비율 (volume_unit * multi_MIN)
+	private int multi_MIN = 6;  //********** 최저가 도달시 매수 비율 (volume_unit * multi_MIN)
 	
 	private int iMinBaseUnit = 120;	//**********최저가 기준 봉 갯수
 	
@@ -353,7 +353,9 @@ public class MonitorScheduler {
 			}
 				
 			
-			String strSignals = signalType + "\t" + bBBSellSig + "\t" + b20SellSig + "\t" + bMAXSellSig + "\t" + bBBBuySig + "\t" + b20BuySig + "\t" + bMINBuySig
+			String strSignals = signalType + "\t" 
+					+ (bBBSellSig?"T":"F") + ":" + (b20SellSig?"T":"F") + ":" + (bMAXSellSig?"T":"F") + "/" 
+					+ (bBBBuySig?"T":"F") + ":" + (b20BuySig?"T":"F") + ":" + (bMINBuySig?"T":"F")
 					+ "\t" + side + "\t" + currency.format(order_price) + "\t" + vol.format(volume);
 			
 			if (currCandle.getTrade_price() != snapShotCandle.getTrade_price()) {
