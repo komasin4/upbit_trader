@@ -27,12 +27,13 @@ public class SendMessageService {
 	
 	@Value("${bot.token}")
 	private String sToken;
-
+	
+	@Value("${bot.chatid}")
+	private String sChatId;
+	
 	public JsonObject send(String sMessage)	{
 
 		JsonObject rtnObject = new JsonObject();
-		
-		String sChatId = "60720442";
 		
 		try {
 			HttpClient client = HttpClientBuilder.create().build();
