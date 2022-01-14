@@ -11,6 +11,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import komasin4.finance.upbit.mapper.CandleMapper;
@@ -19,6 +20,11 @@ import komasin4.finance.upbit.model.SignalModel;
 import komasin4.finance.upbit.scheduler.MonitorScheduler;
 import komasin4.finance.upbit.service.CandleService;
 import komasin4.finance.upbit.util.DateUtil;
+
+import com.google.gson.Gson;
+
+import komasin4.finance.upbit.service.SendMessageService;
+
 
 @RestController
 public class MainController {
@@ -36,6 +42,9 @@ public class MainController {
 	
 	@Autowired
 	MonitorScheduler monitor;
+	
+	@Autowired
+	SendMessageService sendMessageService;
 	
 //	@Scheduled(initialDelay = 1000, fixedRate = 200)
 //	public void startMonitor()	{
@@ -127,5 +136,10 @@ public class MainController {
 	@GetMapping("getValue")
 	public String getValue()	{
 		return "set=" + monitor.getSignal20Sell() + ", vol=" + monitor.getVolumeUnit() + ", mbb=" + monitor.getMultiBB() + ", mmin=" + monitor.getMultiMIN() + ",incom=" + monitor.getIcomeLimitPercent() + ", minbase=" + monitor.getMinBaseUnit();
+	}
+	
+	@GetMapping("/send")
+	public @ResponseBody String sendMessage(@RequestParam(value="txt") String sMessage)		{
+		return new Gson().toJson(sendMessageService.send(sMessage));
 	}
 }
