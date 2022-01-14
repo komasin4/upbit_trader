@@ -19,6 +19,7 @@ import komasin4.finance.upbit.model.OrderModel;
 import komasin4.finance.upbit.model.SignalModel;
 import komasin4.finance.upbit.service.CandleService;
 import komasin4.finance.upbit.service.OrderService;
+import komasin4.finance.upbit.service.SendMessageService;
 import komasin4.finance.upbit.util.DateUtil;
 
 @Service
@@ -34,6 +35,9 @@ public class MonitorScheduler {
 	
 	@Autowired
 	OrderService orderService;
+	
+	@Autowired
+	SendMessageService sendMessageService;
 
 	DecimalFormat currency = new DecimalFormat("###,###");
 	DecimalFormat round = new DecimalFormat("#.##");
@@ -230,6 +234,7 @@ public class MonitorScheduler {
 						sell.setUp_signal_price(order_price);
 						sell.setUp_signal_type(signalType);
 						logger.info("update row:" + sell.getTrade_no() + ":" + candleMapper.updateTradeQueue(sell));
+						sendMessageService.send("BB상단 터치 (매도):" + currency.format(order_price) + ":" +  vol.format(sell.getVolume()) + ":" + currency.format((order_price*sell.getVolume())));
 					}
 				}
 			} else if(signalType == 1 && b20SellSig && bSignal20Sell)	{	//상승하여 20선 터치(매도)
@@ -254,6 +259,7 @@ public class MonitorScheduler {
 						sell.setUp_signal_type(signalType);
 						logger.info("update row:" + sell.getTrade_no() + ":" + candleMapper.updateTradeQueue(sell));
 						sellCnt++;
+						sendMessageService.send("20선 터치 (매도):" + currency.format(order_price) + ":" +  vol.format(sell.getVolume()) + ":" + currency.format((order_price*sell.getVolume())));
 					}
 				}
 				if(sellCnt > 0)	{
@@ -288,6 +294,7 @@ public class MonitorScheduler {
 						sell.setUp_signal_price(order_price);
 						sell.setUp_signal_type(signalType);
 						logger.info("update row:" + sell.getTrade_no() + ":" + candleMapper.updateTradeQueue(sell));
+						sendMessageService.send("신고가(매도):" + currency.format(order_price) + ":" +  vol.format(sell.getVolume()) + ":" + currency.format((order_price*sell.getVolume())));
 					}
 				}
 			} else if(signalType == -1 && b20BuySig)	{	//하락하여 20선 터치(매수)
@@ -304,8 +311,10 @@ public class MonitorScheduler {
 				signal.setVolume(volume);
 				OrderModel order = new OrderModel(side, order_price, signal.getVolume());
 				boolean bExcuteSell = orderService.order(order);
-				if(bExcuteSell)
+				if(bExcuteSell)	{
 					candleMapper.insertTradeQueue(signal);
+					sendMessageService.send("20선 터치 (매수):" + currency.format(order_price) + ":" +  vol.format(volume) + ":" + currency.format((order_price*volume)));
+				}
 				//candleMapper.updateTradeQueue(signal.getTrade_no());
 			} else if(signalType == -2 && (bBBBuySig || (signalBuyValueBB-order_price)/signalBuyValueBB < (0.3/100)))	{	//하락하여 BB하단 터치(매수)
 				logger.info("BB하단 터치(매수)\t");
@@ -321,8 +330,10 @@ public class MonitorScheduler {
 				signal.setVolume(volume);
 				OrderModel order = new OrderModel(side, order_price, signal.getVolume());
 				boolean bExcuteSell = orderService.order(order);
-				if(bExcuteSell)
+				if(bExcuteSell)	{
 					candleMapper.insertTradeQueue(signal);
+					sendMessageService.send("BB하단 터치(매수):" + currency.format(order_price) + ":" +  vol.format(volume) + ":" + currency.format((order_price*volume)));
+				}
 				signalBuyValueBB = order_price;
 				//candleMapper.updateTradeQueue(signal.getTrade_no());
 			} else if(signalType == -100 && (bMINBuySig || (signalBuyValueMIN-order_price)/signalBuyValueMIN < (0.3/100))){	//신저가(매수)
@@ -340,8 +351,10 @@ public class MonitorScheduler {
 				signal.setVolume(volume);
 				OrderModel order = new OrderModel(side, order_price, signal.getVolume());
 				boolean bExcuteSell = orderService.order(order);
-				if(bExcuteSell)
+				if(bExcuteSell)	{
 					candleMapper.insertTradeQueue(signal);
+					sendMessageService.send("신저가(매수):" + currency.format(order_price) + ":" +  vol.format(volume) + ":" + currency.format((order_price*volume)));
+				}
 				signalBuyValueMIN = order_price;
 				//candleMapper.updateTradeQueue(signal.getTrade_no());
 			}
