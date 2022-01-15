@@ -143,7 +143,7 @@ public class MainController {
 		
 		monitor.remove();
 		
-		return "cancel";
+		return "stop";
 	}
 	
 	@GetMapping("/start")
@@ -151,7 +151,7 @@ public class MainController {
 		
 		monitor.start(iFixedRate);
 		
-		return "cancel";
+		return "start:rate(" + iFixedRate + ")";
 	}
 	
 	@GetMapping("/send")

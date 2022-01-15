@@ -10,6 +10,8 @@ import javax.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -41,6 +43,9 @@ public class MonitorScheduler {
 	
 	@Autowired
 	SendMessageService sendMessageService;
+	
+	@Value("${spring.profiles.active}")
+	private String activeProfile;
 
 	DecimalFormat currency = new DecimalFormat("###,###");
 	DecimalFormat round = new DecimalFormat("#.##");
@@ -99,11 +104,13 @@ public class MonitorScheduler {
 			logger.debug("already started!!!");
 		}
 	}
-	
+
 	@PostConstruct
 	public void start()	{
-		if(task == null)
-			task = taskScheduler.scheduleAtFixedRate(()->startMonitor(), initFixedRate);
+		if("real".equals(activeProfile))	{
+			if(task == null)
+				task = taskScheduler.scheduleAtFixedRate(()->startMonitor(), initFixedRate);
+		}
 	}
 	
 	//@Scheduled(initialDelay = 1000, fixedRate = 200)
