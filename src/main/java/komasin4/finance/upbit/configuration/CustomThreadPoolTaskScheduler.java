@@ -9,12 +9,12 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 @Configuration
 public class CustomThreadPoolTaskScheduler extends ThreadPoolTaskScheduler {
 	
-	//private final static int POOL_SIZE = 10;
+	private final static int POOL_SIZE = 9;
 	
 	public CustomThreadPoolTaskScheduler() {
 		super();
 		// TODO Auto-generated constructor stub
-		//this.setPoolSize(POOL_SIZE);
+		this.setPoolSize(POOL_SIZE);
 		this.setThreadNamePrefix("cThread-");
 	}
 
