@@ -138,6 +138,22 @@ public class MainController {
 		return "set=" + monitor.getSignal20Sell() + ", vol=" + monitor.getVolumeUnit() + ", mbb=" + monitor.getMultiBB() + ", mmin=" + monitor.getMultiMIN() + ",incom=" + monitor.getIcomeLimitPercent() + ", minbase=" + monitor.getMinBaseUnit();
 	}
 	
+	@GetMapping("/stop")
+	public @ResponseBody String stop()	{
+		
+		monitor.remove();
+		
+		return "cancel";
+	}
+	
+	@GetMapping("/start")
+	public @ResponseBody String start(@RequestParam(value = "rate", defaultValue="200") int iFixedRate)	{
+		
+		monitor.start(iFixedRate);
+		
+		return "cancel";
+	}
+	
 	@GetMapping("/send")
 	public @ResponseBody String sendMessage(@RequestParam(value="txt") String sMessage)		{
 		return new Gson().toJson(sendMessageService.send(sMessage));

@@ -3,13 +3,15 @@ package komasin4.finance.upbit.scheduler;
 import java.text.DecimalFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ScheduledFuture;
+
+import javax.annotation.PostConstruct;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Profile;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import komasin4.finance.upbit.mapper.CandleMapper;
@@ -20,13 +22,14 @@ import komasin4.finance.upbit.model.SignalModel;
 import komasin4.finance.upbit.service.CandleService;
 import komasin4.finance.upbit.service.OrderService;
 import komasin4.finance.upbit.service.SendMessageService;
-import komasin4.finance.upbit.util.DateUtil;
 
 @Service
-//@Profile({"real", "local", "office"})
 public class MonitorScheduler {
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
+	@Autowired 
+	private TaskScheduler taskScheduler;
+	
 	@Autowired
 	CandleService candleService;
 
@@ -64,20 +67,9 @@ public class MonitorScheduler {
 	
 	private double buyMinPrice = 0;
 
-	//	private int signalType = 0; //2.매도(BB) 1.매도(20), -1.매수(20), -2.매수(BB)
-	//	private int signalCount = 0;
-	//	private double finalSignalValue = 0;
-
-//	private int finalSignalType_Line = 0;
-//	
-//	
-//	//private int signalBBCount = 0;
-//	//private int signal20Count = 0;
-//	private double signalBuyValue20 = 0;
 	private double signalBuyValueBB = 0;
 	private double signalBuyValueMIN = 0;
-//
-//	
+
 	private double price_unit = 1000;   //호가단위 1,000원
 	private double volume_unit = 15000; //**********매수단위 15,000원
 	private double incomeLimitPercent = 0.002; //**********매수 가격보다 incomeLimit 만큼 비싸게 팔아야 수수료 빼고 수익
@@ -87,76 +79,34 @@ public class MonitorScheduler {
 	
 	private int iMinBaseUnit = 120;	//**********최저가 기준 봉 갯수
 	
-	public double getMinBaseUnit()	{
-		return iMinBaseUnit;
-	}
-
-	public double getIcomeLimitPercent()	{
-		return incomeLimitPercent;
-	}
-
-	public boolean getSignal20Sell()	{
-		return bSignal20Sell;
-	}
+	ScheduledFuture<?> task;
+	private final int initFixedRate = 200;
 	
-	public double getVolumeUnit()	{
-		return volume_unit;
-	}
-
-	public double getMultiBB()	{
-		return multi_BB;
-	}
-
-	public double getMultiMIN()	{
-		return multi_MIN;
-	}
-
-	public void setMinBaseUnit(int value){
-		iMinBaseUnit = value;
-		try {
-			updateMaxMinValue();
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+	public void remove() {
+		task.cancel(true);
+		if(task.isCancelled())	{
+			logger.info("monitor stopped!!!");
+		} else {
+			logger.info("monitor stop failed!!!");
 		}
-		logger.info("set iMinBaseUnit = " + iMinBaseUnit);
 	}
 
-	public void setMultiBB(int value)	{
-		multi_BB = value;
-		logger.info("set multi_BB = " + multi_BB);
-	}
-
-	public void setMultiMIN(int value)	{
-		multi_MIN = value;
-		logger.info("set multi_MIN = " + multi_MIN);
-	}
-
-	public void setSignal20Sell(boolean bSet)	{
-		bSignal20Sell = bSet;
-		logger.info("set bSignal20Sell = " + bSignal20Sell);
-	}
-
-	public void setVolumeUnit(double value)	{
-		volume_unit = value;
-		logger.info("set volume_unit = " + volume_unit);
-	}
-
-	public void setIncomeLimitPercent(double value)	{
-		incomeLimitPercent = value;
-		logger.info("set incomeLimitPercent = " + incomeLimitPercent);
+	public void start(int iFixedRate) {
+		if(task == null || task.isCancelled())	{
+			task = taskScheduler.scheduleAtFixedRate(()->startMonitor(), iFixedRate);
+			logger.debug("started!!!");
+		} else	{
+			logger.debug("already started!!!");
+		}
 	}
 	
-	private void updateMaxMinValue() throws Exception	{
-		Map<String, Double> valueMap = candleMapper.selectMaxMinValue(snapShotCandle.getCandle_time(), iMinBaseUnit);
-		
-		finalSignalMaxValue = valueMap.get("maxPrice");
-		finalSignalMinValue = valueMap.get("minPrice");
-
-		logger.info("set finalSignalMaxValue = " + finalSignalMaxValue + ", finalSignalMinValue = " + finalSignalMinValue);
+	@PostConstruct
+	public void start()	{
+		if(task == null)
+			task = taskScheduler.scheduleAtFixedRate(()->startMonitor(), initFixedRate);
 	}
-
-	@Scheduled(initialDelay = 1000, fixedRate = 200)
+	
+	//@Scheduled(initialDelay = 1000, fixedRate = 200)
 	public void startMonitor()	{
 
 		try {
@@ -457,5 +407,74 @@ public class MonitorScheduler {
 			rtnLocation = -1;
 
 		return rtnLocation;
+	}
+	
+	public double getMinBaseUnit()	{
+		return iMinBaseUnit;
+	}
+
+	public double getIcomeLimitPercent()	{
+		return incomeLimitPercent;
+	}
+
+	public boolean getSignal20Sell()	{
+		return bSignal20Sell;
+	}
+	
+	public double getVolumeUnit()	{
+		return volume_unit;
+	}
+
+	public double getMultiBB()	{
+		return multi_BB;
+	}
+
+	public double getMultiMIN()	{
+		return multi_MIN;
+	}
+
+	public void setMinBaseUnit(int value){
+		iMinBaseUnit = value;
+		try {
+			updateMaxMinValue();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		logger.info("set iMinBaseUnit = " + iMinBaseUnit);
+	}
+
+	public void setMultiBB(int value)	{
+		multi_BB = value;
+		logger.info("set multi_BB = " + multi_BB);
+	}
+
+	public void setMultiMIN(int value)	{
+		multi_MIN = value;
+		logger.info("set multi_MIN = " + multi_MIN);
+	}
+
+	public void setSignal20Sell(boolean bSet)	{
+		bSignal20Sell = bSet;
+		logger.info("set bSignal20Sell = " + bSignal20Sell);
+	}
+
+	public void setVolumeUnit(double value)	{
+		volume_unit = value;
+		logger.info("set volume_unit = " + volume_unit);
+	}
+
+	public void setIncomeLimitPercent(double value)	{
+		incomeLimitPercent = value;
+		logger.info("set incomeLimitPercent = " + incomeLimitPercent);
+	}
+	
+	private void updateMaxMinValue() throws Exception	{
+		Map<String, Double> valueMap = candleMapper.selectMaxMinValue(snapShotCandle.getCandle_time(), iMinBaseUnit);
+		
+		finalSignalMaxValue = valueMap.get("maxPrice");
+		finalSignalMinValue = valueMap.get("minPrice");
+
+		logger.info("set finalSignalMaxValue = " + finalSignalMaxValue + ", finalSignalMinValue = " + finalSignalMinValue);
 	}
 }
