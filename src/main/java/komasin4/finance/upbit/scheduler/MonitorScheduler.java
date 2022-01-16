@@ -191,7 +191,14 @@ public class MonitorScheduler {
 						sell.setUp_signal_price(order_price);
 						sell.setUp_signal_type(signalType);
 						logger.info("update row:" + sell.getTrade_no() + ":" + candleMapper.updateTradeQueue(sell));
-						sendMessageService.send("BB상단 터치 (매도):" + currency.format(order_price) + ":" +  vol.format(sell.getVolume()) + ":" + currency.format((order_price*sell.getVolume())));
+						
+						StringBuffer sb = new StringBuffer()
+											.append("BB상단 터치 (매도)\n") 
+											.append("매도가  : ").append(currency.format(order_price)).append("\n") 
+											.append("매도수량 : ").append(vol.format(sell.getVolume())).append("\n")
+											.append("매도금액 : ").append(currency.format((order_price*sell.getVolume()))).append("\n");
+											
+						sendMessageService.send(sb.toString());
 					}
 				}
 			} else if(signalType == 1 && b20SellSig && bSignal20Sell)	{	//상승하여 20선 터치(매도)
@@ -216,7 +223,13 @@ public class MonitorScheduler {
 						sell.setUp_signal_type(signalType);
 						logger.info("update row:" + sell.getTrade_no() + ":" + candleMapper.updateTradeQueue(sell));
 						sellCnt++;
-						sendMessageService.send("20선 터치 (매도):" + currency.format(order_price) + ":" +  vol.format(sell.getVolume()) + ":" + currency.format((order_price*sell.getVolume())));
+						StringBuffer sb = new StringBuffer()
+								.append("20선 터치 (매도)\n") 
+								.append("매도가  : ").append(currency.format(order_price)).append("\n") 
+								.append("매도수량 : ").append(vol.format(sell.getVolume())).append("\n")
+								.append("매도금액 : ").append(currency.format((order_price*sell.getVolume()))).append("\n");
+						sendMessageService.send(sb.toString());
+						//sendMessageService.send("20선 터치 (매도):" + currency.format(order_price) + ":" +  vol.format(sell.getVolume()) + ":" + currency.format((order_price*sell.getVolume())));
 					}
 				}
 				if(sellCnt > 0)	{
@@ -251,7 +264,16 @@ public class MonitorScheduler {
 						sell.setUp_signal_price(order_price);
 						sell.setUp_signal_type(signalType);
 						logger.info("update row:" + sell.getTrade_no() + ":" + candleMapper.updateTradeQueue(sell));
-						sendMessageService.send("신고가(매도):" + currency.format(order_price) + ":" +  vol.format(sell.getVolume()) + ":" + currency.format((order_price*sell.getVolume())));
+						
+						StringBuffer sb = new StringBuffer()
+								.append("신고가(매도)\n") 
+								.append("매도가  : ").append(currency.format(order_price)).append("\n") 
+								.append("매도수량 : ").append(vol.format(sell.getVolume())).append("\n")
+								.append("매도금액 : ").append(currency.format((order_price*sell.getVolume()))).append("\n");
+
+						sendMessageService.send(sb.toString());
+
+						//sendMessageService.send("신고가(매도):" + currency.format(order_price) + ":" +  vol.format(sell.getVolume()) + ":" + currency.format((order_price*sell.getVolume())));
 					}
 				}
 			} else if(signalType == -1 && b20BuySig)	{	//하락하여 20선 터치(매수)
@@ -270,7 +292,13 @@ public class MonitorScheduler {
 				boolean bExcuteSell = orderService.order(order);
 				if(bExcuteSell)	{
 					candleMapper.insertTradeQueue(signal);
-					sendMessageService.send("20선 터치 (매수):" + currency.format(order_price) + ":" +  vol.format(volume) + ":" + currency.format((order_price*volume)));
+					StringBuffer sb = new StringBuffer()
+							.append("20선 터치 (매수)\n") 
+							.append("매수가  : ").append(currency.format(order_price)).append("\n") 
+							.append("매수수량 : ").append(vol.format(volume)).append("\n")
+							.append("매수금액 : ").append(currency.format((order_price*volume))).append("\n");
+					sendMessageService.send(sb.toString());
+					//sendMessageService.send("20선 터치 (매수):" + currency.format(order_price) + ":" +  vol.format(volume) + ":" + currency.format((order_price*volume)));
 				}
 				//candleMapper.updateTradeQueue(signal.getTrade_no());
 			} else if(signalType == -2 && (bBBBuySig || (signalBuyValueBB-order_price)/signalBuyValueBB < (0.3/100)))	{	//하락하여 BB하단 터치(매수)
@@ -289,7 +317,13 @@ public class MonitorScheduler {
 				boolean bExcuteSell = orderService.order(order);
 				if(bExcuteSell)	{
 					candleMapper.insertTradeQueue(signal);
-					sendMessageService.send("BB하단 터치(매수):" + currency.format(order_price) + ":" +  vol.format(volume) + ":" + currency.format((order_price*volume)));
+					StringBuffer sb = new StringBuffer()
+							.append("BB하단 터치(매수)\n") 
+							.append("매수가  : ").append(currency.format(order_price)).append("\n") 
+							.append("매수수량 : ").append(vol.format(volume)).append("\n")
+							.append("매수금액 : ").append(currency.format((order_price*volume))).append("\n");
+					sendMessageService.send(sb.toString());
+					//sendMessageService.send("BB하단 터치(매수):" + currency.format(order_price) + ":" +  vol.format(volume) + ":" + currency.format((order_price*volume)));
 				}
 				signalBuyValueBB = order_price;
 				//candleMapper.updateTradeQueue(signal.getTrade_no());
@@ -310,7 +344,14 @@ public class MonitorScheduler {
 				boolean bExcuteSell = orderService.order(order);
 				if(bExcuteSell)	{
 					candleMapper.insertTradeQueue(signal);
-					sendMessageService.send("신저가(매수):" + currency.format(order_price) + ":" +  vol.format(volume) + ":" + currency.format((order_price*volume)));
+					
+					StringBuffer sb = new StringBuffer()
+							.append("신저가(매수)\n") 
+							.append("매수가  : ").append(currency.format(order_price)).append("\n") 
+							.append("매수수량 : ").append(vol.format(volume)).append("\n")
+							.append("매수금액 : ").append(currency.format((order_price*volume))).append("\n");
+					sendMessageService.send(sb.toString());
+					//sendMessageService.send("신저가(매수):" + currency.format(order_price) + ":" +  vol.format(volume) + ":" + currency.format((order_price*volume)));
 				}
 				signalBuyValueMIN = order_price;
 				//candleMapper.updateTradeQueue(signal.getTrade_no());
@@ -483,5 +524,9 @@ public class MonitorScheduler {
 		finalSignalMinValue = valueMap.get("minPrice");
 
 		logger.info("set finalSignalMaxValue = " + finalSignalMaxValue + ", finalSignalMinValue = " + finalSignalMinValue);
+	}
+	
+	public MinuteCandleModel getSnapShotCandle()	{
+		return snapShotCandle;
 	}
 }
