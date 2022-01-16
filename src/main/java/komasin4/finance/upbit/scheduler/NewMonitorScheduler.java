@@ -144,14 +144,25 @@ public class NewMonitorScheduler extends BaseScheduler {
 					//fallRate 이상 하락 했다면 매수
 					logger.warn("(*) {} {} 이평선(매수): {} : {} : {} : {}", checkCount, iSignal, F.cf.format(currCandle.getTrade_price()), F.cf.format(lastBuySignalPrice), (lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice, fallRate);
 					
+					StringBuffer sb = new StringBuffer()
+											.append("(*)이평선 도달 매수\n")
+											.append("Signal     : ").append(iSignal).append("\n")
+											.append("currPrice  : ").append(F.cf.format(currCandle.getTrade_price())).append("\n")
+											.append("lastPrice  : ").append(F.cf.format(lastBuySignalPrice)).append("\n")
+											.append("diff     % : ").append((lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice).append("\n")
+											.append("baseRate % : ").append(fallRate);
+					
+//					String sSend = "(*) 이평선 도달 매수 / " 
+//									+ iSignal + " / " 
+//									+ F.cf.format(currCandle.getTrade_price()) + " / " 
+//									+ F.cf.format(lastBuySignalPrice) + " / " 
+//									+ (lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice 
+//									+ " / " + fallRate;
+					
 					lastBuySignalPrice = currCandle.getTrade_price();
-					
-					String sSend = "(*) 이평선 도달 매수 / " + iSignal + " / " +  F.cf.format(currCandle.getTrade_price()) + " / " + F.cf.format(lastBuySignalPrice) + " / " + (lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice + " / " + fallRate;
-					sendMessageService.send(sSend);
-					
-							
 					bBuy = true;
 					
+					sendMessageService.send(sb.toString());
 				} else {
 					logger.debug("이평선({} 패스): {} : {} : {} : {}", iSignal, F.cf.format(currCandle.getTrade_price()), F.cf.format(lastBuySignalPrice), (lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice, fallRate);
 				}
@@ -176,13 +187,23 @@ public class NewMonitorScheduler extends BaseScheduler {
 				if(lastBuySignalPrice == 0 || (lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice > fallRate)	{
 					//fallRate 이상 하락 했다면 매수
 					logger.warn("(*) 신저가(매수): {} : {} : {} : {}", F.cf.format(currCandle.getTrade_price()), F.cf.format(lastBuySignalPrice), (lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice, fallRate);
-					
+					StringBuffer sb = new StringBuffer()
+							.append("(*)이평선 도달 매수\n")
+							.append("Signal     : ").append(iSignal).append("\n")
+							.append("currPrice  : ").append(F.cf.format(currCandle.getTrade_price())).append("\n")
+							.append("lastPrice  : ").append(F.cf.format(lastBuySignalPrice)).append("\n")
+							.append("diff     % : ").append((lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice).append("\n")
+							.append("baseRate % : ").append(fallRate);
+
+//					String sSend = "(*) 신저가(매수): " 
+//								    + F.cf.format(currCandle.getTrade_price()) + " " 
+//								    + F.cf.format(lastBuySignalPrice) + " " 
+//								    + (lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice + " " 
+//								    + fallRate;
 					lastBuySignalPrice = currCandle.getTrade_price();
-							
 					bBuy = true;
 
-					String sSend = "(*) 신저가(매수): " + F.cf.format(currCandle.getTrade_price()) + " " + F.cf.format(lastBuySignalPrice) + " " + (lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice + " " + fallRate;
-					sendMessageService.send(sSend);
+					sendMessageService.send(sb.toString());
 					
 				} else {
 					logger.debug("신저가(패스): {} : {} : {} : {}", F.cf.format(currCandle.getTrade_price()), F.cf.format(lastBuySignalPrice), (lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice, fallRate);
