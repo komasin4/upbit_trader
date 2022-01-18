@@ -62,6 +62,10 @@ public class NewMonitorScheduler extends BaseScheduler {
 	//신저가 발생시 매수
 	//매수 신호 이후 1분 초과 했으나 가격차이가 XX% 미만이면 패스
 	//신저가 매수 이후 XX% 이상 하락 하면 추가 매수.
+	
+	
+	boolean bTrade = false;
+	
 
 	private DayCandleModel todayCandle;
 	double maxPrice = 0;
@@ -81,6 +85,11 @@ public class NewMonitorScheduler extends BaseScheduler {
 	private double volume_unit = 15000; 		//**********매수단위 15,000원
 	private double incomeLimitPercent = 0.002; //**********매수 가격보다 incomeLimit 만큼 비싸게 팔아야 수수료 빼고 수익
 
+	public boolean setBTrade(boolean setVal)	{
+		this.bTrade = setVal;
+		return this.bTrade;
+	}
+	
 	@Override
 	public void start() {
 		// TODO Auto-generated method stub
@@ -174,26 +183,21 @@ public class NewMonitorScheduler extends BaseScheduler {
 				for(SignalModel sell : sellList)	{
 					logger.info(sell.getTime_kst() + ":" + sell.getSignal_type() + ":" + sell.getSignal_price());
 					OrderModel order = new OrderModel(side, order_price, sell.getVolume());
-					boolean bExcuteSell = orderService.order(order);
-					logger.debug("bExcuteSell:" + bExcuteSell);
-					
+
 					StringBuffer sb = new StringBuffer();
-					
-					if(bExcuteSell)	{
-						sell.setUp_signal_price(order_price);
-						//sell.setUp_signal_type(signalType);
-						sell.setUp_signal_type(signalType==1?iSignal:200);	//상승폭 매도일 경우 signal type = 200 으로 세팅
-						logger.info("update row:" + sell.getTrade_no() + ":" + candleMapper.updateTradeQueue(sell));
+
+					if(bTrade)	{
+						boolean bExcuteSell = orderService.order(order);
+						logger.debug("bExcuteSell:" + bExcuteSell);
 						
-//						StringBuffer sb = new StringBuffer()
-//								.append("신고가(매도)\n") 
-//								.append("매도가  : ").append(currency.format(order_price)).append("\n") 
-//								.append("매도수량 : ").append(vol.format(sell.getVolume())).append("\n")
-//								.append("매도금액 : ").append(currency.format((order_price*sell.getVolume()))).append("\n");
-						
-						//sendMessageService.send("신고가(매도):" + currency.format(order_price) + ":" +  vol.format(sell.getVolume()) + ":" + currency.format((order_price*sell.getVolume())));
-					} else {
-						sb.append("주문실패\n");
+						if(bExcuteSell)	{
+							sell.setUp_signal_price(order_price);
+							sell.setUp_signal_type(signalType==1?iSignal:200);	//상승폭 매도일 경우 signal type = 200 으로 세팅
+							logger.info("update row:" + sell.getTrade_no() + ":" + candleMapper.updateTradeQueue(sell));
+							
+						} else {
+							sb.append("주문실패\n");
+						}
 					}
 					
 					sb.append("(*)")
@@ -228,18 +232,20 @@ public class NewMonitorScheduler extends BaseScheduler {
 
 					SignalModel signal = new SignalModel(currCandle.getCandle_date_time_utc(), currCandle.getCandle_date_time_kst(), iSignal, currCandle.getTrade_price(), volume, "N");
 					signal.setVolume(volume);
-
-					OrderModel order = new OrderModel(side, order_price, signal.getVolume());
-					boolean bExcuteSell = orderService.order(order);
-
-					StringBuffer sb = new StringBuffer();
 					
-					if(bExcuteSell)	{
-						candleMapper.insertTradeQueue(signal);
-						//sendMessageService.send("20선 터치 (매수):" + currency.format(order_price) + ":" +  vol.format(volume) + ":" + currency.format((order_price*volume)));
-						bBuy = true;
-					} else {
-						sb.append("주문실패\n");
+					StringBuffer sb = new StringBuffer();
+
+					if(bTrade)	{
+						OrderModel order = new OrderModel(side, order_price, signal.getVolume());
+						boolean bExcuteSell = orderService.order(order);
+						
+						if(bExcuteSell)	{
+							candleMapper.insertTradeQueue(signal);
+							//sendMessageService.send("20선 터치 (매수):" + currency.format(order_price) + ":" +  vol.format(volume) + ":" + currency.format((order_price*volume)));
+							bBuy = true;
+						} else {
+							sb.append("주문실패\n");
+						}
 					}
 
 					sb.append("(*)20선 도달 매수\n")
@@ -296,17 +302,19 @@ public class NewMonitorScheduler extends BaseScheduler {
 
 					SignalModel signal = new SignalModel(currCandle.getCandle_date_time_utc(), currCandle.getCandle_date_time_kst(), iSignal, currCandle.getTrade_price(), volume, "N");
 					signal.setVolume(volume);
-
-					OrderModel order = new OrderModel(side, order_price, signal.getVolume());
-					boolean bExcuteSell = orderService.order(order);
 					
 					StringBuffer sb = new StringBuffer();
 					
-					if(bExcuteSell)	{
-						candleMapper.insertTradeQueue(signal);
-						//sendMessageService.send("20선 터치 (매수):" + currency.format(order_price) + ":" +  vol.format(volume) + ":" + currency.format((order_price*volume)));
-					} else {
-						sb.append("주문실패\n");
+					if(bTrade)	{
+						OrderModel order = new OrderModel(side, order_price, signal.getVolume());
+						boolean bExcuteSell = orderService.order(order);
+						
+						if(bExcuteSell)	{
+							candleMapper.insertTradeQueue(signal);
+							//sendMessageService.send("20선 터치 (매수):" + currency.format(order_price) + ":" +  vol.format(volume) + ":" + currency.format((order_price*volume)));
+						} else {
+							sb.append("주문실패\n");
+						}
 					}
 
 					sb.append("(*)신저가 도달 매수\n")

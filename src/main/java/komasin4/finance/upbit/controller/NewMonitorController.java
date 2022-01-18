@@ -31,4 +31,23 @@ public class NewMonitorController {
 	public @ResponseBody String status()	{
 		return nScheduler.status();
 	}
+	
+	@GetMapping("/nset")
+	public String setValue(
+//							@RequestParam(value="20sig", required=false) Boolean bSet,
+//							@RequestParam(value="vol", required=false) Double vol,
+//							@RequestParam(value="income", required=false) Double incom,
+//							@RequestParam(value="minbase", required=false) Integer minbase,
+//							@RequestParam(value="mbb", required=false) Integer mbb,
+//							@RequestParam(value="mmin", required=false) Integer mmin,
+							@RequestParam(value="trade", defaultValue="false", required=false) Boolean bTrade
+						  )	{
+		
+		String rtnVal = "";
+		
+		nScheduler.setBTrade(bTrade);
+		
+		return rtnVal;
+		
+	}
 }
