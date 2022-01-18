@@ -4,9 +4,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
 
+import javax.annotation.PostConstruct;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
 
@@ -50,6 +53,14 @@ public class NewMonitorScheduler extends BaseScheduler {
 	
 	@Autowired
 	OrderService orderService;
+	
+	@Autowired 
+	private TaskScheduler taskScheduler;
+	
+	@Value("${spring.profiles.active}")
+	private String activeProfile;
+	
+	private final int initFixedRate = 300;
 
 	//20선 도달시 매수
 	//매수 이후 1분 이내 다시 매수 신호 발생시는 패스
@@ -84,10 +95,23 @@ public class NewMonitorScheduler extends BaseScheduler {
 	private double price_unit = 1000;   		//호가단위 1,000원
 	private double volume_unit = 15000; 		//**********매수단위 15,000원
 	private double incomeLimitPercent = 0.002; //**********매수 가격보다 incomeLimit 만큼 비싸게 팔아야 수수료 빼고 수익
+	
+	private String sellSignalTime;
 
 	public boolean setBTrade(boolean setVal)	{
 		this.bTrade = setVal;
 		return this.bTrade;
+	}
+	
+	@PostConstruct
+	public void startAuto()	{
+		
+		if("office".equals(activeProfile) || "local".equals(activeProfile))	{
+			if(task == null) {
+				task = taskScheduler.scheduleAtFixedRate(()->start(), initFixedRate);
+				//task = taskScheduler.scheduleAtFixedRate(()->start(), 2000);
+			}
+		}
 	}
 	
 	@Override
@@ -137,7 +161,7 @@ public class NewMonitorScheduler extends BaseScheduler {
 			//이전분봉기준으로 신호 발생 여부 체크
 			int iSignal = MonitorUtil.getSignalType(currLocation, diff);
 
-			if(checkCount % 200 == 0) {
+			if(checkCount % 50 == 0) {
 			logger.info("{} {} ({}) Location : {} -> {}    curr:{} sig:{} %:{} min:{} %:{} fall%:{}"
 					, checkCount
 					, (iSignal>0?"매도":iSignal<0?"매수":"관망")
@@ -162,7 +186,8 @@ public class NewMonitorScheduler extends BaseScheduler {
 			//3. 매수 신호 발생시는 이전 매도 가격 reset
 			
 			
-			if((currCandle.getTrade_price()-lastSellSignalPrice)/lastSellSignalPrice  > raiseRate  || iSignal > 0)	{
+//			if((currCandle.getTrade_price()-lastSellSignalPrice)/lastSellSignalPrice  > raiseRate  || (iSignal > 0 && !currCandle.getCandle_time().equals(sellSignalTime)))	{
+			if((currCandle.getTrade_price()-lastSellSignalPrice)/lastSellSignalPrice  > raiseRate  || (iSignal > 0 && currCandle.getTrade_price() > snapShotCandle.getTrade_price()))	{
 				
 				int signalType = 1;
 				String tmpStr = "시그널";
@@ -173,7 +198,7 @@ public class NewMonitorScheduler extends BaseScheduler {
 				}
 				
 			
-				logger.info("(*) {} {} {} (매도): {} : {} : {} : {}", checkCount, iSignal, tmpStr, F.cf.format(currCandle.getTrade_price()), F.cf.format(lastSellSignalPrice), (lastSellSignalPrice - currCandle.getTrade_price())/lastSellSignalPrice, raiseRate);
+				logger.warn("(*) {} {} {} (매도): {} : {} : {} : {}", checkCount, iSignal, tmpStr, F.cf.format(currCandle.getTrade_price()), F.cf.format(lastSellSignalPrice), (lastSellSignalPrice - currCandle.getTrade_price())/lastSellSignalPrice, raiseRate);
 				
 				
 				String side = "ask";
@@ -194,7 +219,7 @@ public class NewMonitorScheduler extends BaseScheduler {
 							sell.setUp_signal_price(order_price);
 							sell.setUp_signal_type(signalType==1?iSignal:200);	//상승폭 매도일 경우 signal type = 200 으로 세팅
 							logger.info("update row:" + sell.getTrade_no() + ":" + candleMapper.updateTradeQueue(sell));
-							
+							bBuy = true;
 						} else {
 							sb.append("주문실패\n");
 						}
@@ -214,8 +239,10 @@ public class NewMonitorScheduler extends BaseScheduler {
 
 					sendMessageService.send(sb.toString());
 				}
-				
-				bSell = true;
+								
+				lastSellSignalPrice = currCandle.getTrade_price();
+				//lastBuySignalPrice = 0;
+				sellSignalTime = currCandle.getCandle_time();
 
 				//매도 신호 이후 매수 신호 발생시는 매수 처리.
 			}				
@@ -224,7 +251,7 @@ public class NewMonitorScheduler extends BaseScheduler {
 
 				if(lastBuySignalPrice == 0 || (lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice > fallRate)	{
 					//fallRate 이상 하락 했다면 매수
-					logger.info("(*) {} {} 이평선(매수): {} : {} : {} : {}", checkCount, iSignal, F.cf.format(currCandle.getTrade_price()), F.cf.format(lastBuySignalPrice), (lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice, fallRate);
+					logger.warn("(*) {} {} 이평선(매수): {} : {} : {} : {}", checkCount, iSignal, F.cf.format(currCandle.getTrade_price()), F.cf.format(lastBuySignalPrice), (lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice, fallRate);
 					
 					double order_price = currCandle.getTrade_price() + price_unit;;
 					double volume = volume_unit/order_price;
@@ -242,7 +269,7 @@ public class NewMonitorScheduler extends BaseScheduler {
 						if(bExcuteSell)	{
 							candleMapper.insertTradeQueue(signal);
 							//sendMessageService.send("20선 터치 (매수):" + currency.format(order_price) + ":" +  vol.format(volume) + ":" + currency.format((order_price*volume)));
-							bBuy = true;
+							bSell = true;
 						} else {
 							sb.append("주문실패\n");
 						}
@@ -262,7 +289,6 @@ public class NewMonitorScheduler extends BaseScheduler {
 					
 					lastSellSignalPrice = 0;
 					lastBuySignalPrice = currCandle.getTrade_price();
-
 				} else {
 					logger.debug("이평선({} 패스): {} : {} : {} : {}", iSignal, F.cf.format(currCandle.getTrade_price()), F.cf.format(lastBuySignalPrice), (lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice, fallRate);
 				}
@@ -286,7 +312,7 @@ public class NewMonitorScheduler extends BaseScheduler {
 			if(currCandle.getTrade_price() < minPrice)	{
 				if(lastBuySignalPrice == 0 || (lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice > fallRate)	{
 					//fallRate 이상 하락 했다면 매수
-					logger.info("(*) 신저가(매수): {} : {} : {} : {}", F.cf.format(currCandle.getTrade_price()), F.cf.format(lastBuySignalPrice), (lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice, fallRate);
+					logger.warn("(*) 신저가(매수): {} : {} : {} : {}", F.cf.format(currCandle.getTrade_price()), F.cf.format(lastBuySignalPrice), (lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice, fallRate);
 //					StringBuffer sb = new StringBuffer()
 //							.append("(*)이평선 도달 매수\n")
 //							.append("Signal     : ").append(iSignal).append("\n")
