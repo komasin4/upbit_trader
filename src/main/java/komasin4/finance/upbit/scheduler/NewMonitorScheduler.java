@@ -168,9 +168,9 @@ public class NewMonitorScheduler extends BaseScheduler {
 					, currLocation
 					, F.cf.format(currCandle.getTrade_price())
 					, F.cf.format(lastBuySignalPrice)
-					, (lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice
+					, F.vf.format((lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice)
 					, F.cf.format(minPrice)
-					, (minPrice - currCandle.getTrade_price())/minPrice
+					, F.vf.format((minPrice - currCandle.getTrade_price())/minPrice)
 					, fallRate
 					);
 			}
@@ -196,7 +196,12 @@ public class NewMonitorScheduler extends BaseScheduler {
 				}
 				
 			
-				logger.warn("(*) {} {} {} (매도): {} : {} : {} : {}", checkCount, iSignal, tmpStr, F.cf.format(currCandle.getTrade_price()), F.cf.format(lastSellSignalPrice), (lastSellSignalPrice - currCandle.getTrade_price())/lastSellSignalPrice, raiseRate);
+				logger.warn("(*) {} {} {} (매도): {} : {} : {} : {}", 
+						checkCount, iSignal, tmpStr, 
+						F.cf.format(currCandle.getTrade_price()), 
+						F.cf.format(lastSellSignalPrice), 
+						F.vf.format((lastSellSignalPrice - currCandle.getTrade_price())/lastSellSignalPrice), 
+						raiseRate);
 				
 				
 				String side = "ask";
@@ -232,7 +237,7 @@ public class NewMonitorScheduler extends BaseScheduler {
 					  .append("Signal     : ").append(iSignal).append("\n")
 					  .append("currPrice  : ").append(F.cf.format(currCandle.getTrade_price())).append("\n")
 					  .append("lastPrice  : ").append(F.cf.format(lastSellSignalPrice)).append("\n")
-					  .append("diff     % : ").append((lastSellSignalPrice - currCandle.getTrade_price())/lastSellSignalPrice).append("\n")
+					  .append("diff     % : ").append(F.vf.format((lastSellSignalPrice - currCandle.getTrade_price())/lastSellSignalPrice)).append("\n")
 					  .append("raiseRate% : ").append(raiseRate);
 
 					sendMessageService.send(sb.toString());
@@ -252,7 +257,12 @@ public class NewMonitorScheduler extends BaseScheduler {
 
 				if(lastBuySignalPrice == 0 || (lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice > fallRate)	{
 					//fallRate 이상 하락 했다면 매수
-					logger.warn("(*) {} {} 이평선(매수): {} : {} : {} : {}", checkCount, iSignal, F.cf.format(currCandle.getTrade_price()), F.cf.format(lastBuySignalPrice), (lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice, fallRate);
+					logger.warn("(*) {} {} 이평선(매수): {} : {} : {} : {}", 
+							checkCount, iSignal, 
+							F.cf.format(currCandle.getTrade_price()), 
+							F.cf.format(lastBuySignalPrice), 
+							F.vf.format((lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice), 
+							fallRate);
 					
 					double order_price = currCandle.getTrade_price() + price_unit;
 					double volume = volume_unit/order_price;
@@ -292,7 +302,7 @@ public class NewMonitorScheduler extends BaseScheduler {
 					  .append("Signal     : ").append(iSignal).append("\n")
 					  .append("currPrice  : ").append(F.cf.format(currCandle.getTrade_price())).append("\n")
 					  .append("lastPrice  : ").append(F.cf.format(lastBuySignalPrice)).append("\n")
-					  .append("diff     % : ").append((lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice).append("\n")
+					  .append("diff     % : ").append(F.vf.format((lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice)).append("\n")
 					  .append("baseRate % : ").append(fallRate);
 
 					sendMessageService.send(sb.toString());
@@ -302,7 +312,11 @@ public class NewMonitorScheduler extends BaseScheduler {
 					sellSignalTime = currCandle.getCandle_time();
 					bBuy = true;
 				} else {
-					logger.debug("이평선({} 패스): {} : {} : {} : {}", iSignal, F.cf.format(currCandle.getTrade_price()), F.cf.format(lastBuySignalPrice), (lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice, fallRate);
+					logger.debug("이평선({} 패스): {} : {} : {} : {}", iSignal, 
+							F.cf.format(currCandle.getTrade_price()), 
+							F.cf.format(lastBuySignalPrice), 
+							F.vf.format((lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice), 
+							fallRate);
 				}
 			}
 			//이동평균선/볼린저밴드 활용한 매수/매도 신호 체크 -- to
@@ -324,7 +338,11 @@ public class NewMonitorScheduler extends BaseScheduler {
 			if(currCandle.getTrade_price() < minPrice)	{
 				if(lastBuySignalPrice == 0 || (lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice > fallRate)	{
 					//fallRate 이상 하락 했다면 매수
-					logger.warn("(*) 신저가(매수): {} : {} : {} : {}", F.cf.format(currCandle.getTrade_price()), F.cf.format(lastBuySignalPrice), (lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice, fallRate);
+					logger.warn("(*) 신저가(매수): {} : {} : {} : {}", 
+							F.cf.format(currCandle.getTrade_price()), 
+							F.cf.format(lastBuySignalPrice), 
+							F.vf.format((lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice), 
+							fallRate);
 //					StringBuffer sb = new StringBuffer()
 //							.append("(*)이평선 도달 매수\n")
 //							.append("Signal     : ").append(iSignal).append("\n")
@@ -362,7 +380,7 @@ public class NewMonitorScheduler extends BaseScheduler {
 					  .append("Signal     : ").append(iSignal).append("\n")
 					  .append("currPrice  : ").append(F.cf.format(currCandle.getTrade_price())).append("\n")
 					  .append("lastPrice  : ").append(F.cf.format(lastBuySignalPrice)).append("\n")
-					  .append("diff     % : ").append((lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice).append("\n")
+					  .append("diff     % : ").append(F.vf.format((lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice)).append("\n")
 					  .append("baseRate % : ").append(fallRate);
 					sendMessageService.send(sb.toString());
 
@@ -373,7 +391,11 @@ public class NewMonitorScheduler extends BaseScheduler {
 //					sendMessageService.send(sb.toString());
 					
 				} else {
-					logger.debug("신저가(패스): {} : {} : {} : {}", F.cf.format(currCandle.getTrade_price()), F.cf.format(lastBuySignalPrice), (lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice, fallRate);
+					logger.debug("신저가(패스): {} : {} : {} : {}", 
+							F.cf.format(currCandle.getTrade_price()), 
+							F.cf.format(lastBuySignalPrice), 
+							F.vf.format((lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice), 
+							fallRate);
 				}
 			}
 			
