@@ -87,22 +87,20 @@ public class NewMonitorScheduler extends BaseScheduler {
 	int iMinBaseUnit = 120;
 
 	private double lastSellSignalPrice = 1000;  //최근 매도 신호 발생 가격 
-	private double lastBuySignalPrice;			//최근 매수 신호 발생 가격
-	private double fallRate = 0.002;			//매수기준 하락 폭 - 가장 최근 매수 가격보다 이 % 이상 떨어져야 매수 
-	private double raiseRate = 0.002;			//매도기준 상승 폭 - 가장 최근 매도 가격보다 이 % 이상 상승하면 매도 
+	private double lastBuySignalPrice  = 1000;	//최근 매수 신호 발생 가격
 	private int checkCount = 0;
 	
 	private double price_unit = 1000;   		//호가단위 1,000원
+
+	private double fallRate = 0.002;			//매수기준 하락 폭 - 가장 최근 매수 가격보다 이 % 이상 떨어져야 매수 
+	private double raiseRate = 0.002;			//매도기준 상승 폭 - 가장 최근 매도 가격보다 이 % 이상 상승하면 매도 
 	private double volume_unit = 15000; 		//**********매수단위 15,000원
-	private double incomeLimitPercent = 0.002; //**********매수 가격보다 incomeLimit 만큼 비싸게 팔아야 수수료 빼고 수익
+	private double incomeLimitPercent = 0.002;	//**********매수 가격보다 incomeLimit 만큼 비싸게 팔아야 수수료 빼고 수익
+	private int multi_BB = 2;					//********** BB 하단 도달시 매수 비율 (volume_unit * multi_BB)
+	private int multi_MIN = 5;  				//********** 최저가 도달시 매수 비율 (volume_unit * multi_MIN)
 	
 	private String sellSignalTime;
 
-	public boolean setBTrade(boolean setVal)	{
-		this.bTrade = setVal;
-		return this.bTrade;
-	}
-	
 	@PostConstruct
 	public void startAuto()	{
 		
@@ -253,8 +251,13 @@ public class NewMonitorScheduler extends BaseScheduler {
 					//fallRate 이상 하락 했다면 매수
 					logger.warn("(*) {} {} 이평선(매수): {} : {} : {} : {}", checkCount, iSignal, F.cf.format(currCandle.getTrade_price()), F.cf.format(lastBuySignalPrice), (lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice, fallRate);
 					
-					double order_price = currCandle.getTrade_price() + price_unit;;
+					double order_price = currCandle.getTrade_price() + price_unit;
 					double volume = volume_unit/order_price;
+					
+					//BB매도시는 multi_BB 적용
+					if(iSignal < -1)
+						volume = volume_unit*multi_BB/order_price;
+					
 					String side = "bid";
 
 					SignalModel signal = new SignalModel(currCandle.getCandle_date_time_utc(), currCandle.getCandle_date_time_kst(), iSignal, currCandle.getTrade_price(), volume, "N");
@@ -275,8 +278,12 @@ public class NewMonitorScheduler extends BaseScheduler {
 						}
 					}
 
-					sb.append("(*)20선 도달 매수\n")
-					  .append("매수가     : ").append(F.cf.format(order_price)).append("\n") 
+					if(iSignal < -1)
+						sb.append("(*)20선 도달 매수\n");
+					else
+						sb.append("(*)BB 도달 매수\n");
+					
+					sb.append("매수가     : ").append(F.cf.format(order_price)).append("\n") 
 					  .append("매수수량   : ").append(F.vf.format(volume)).append("\n")
 					  .append("매수금액   : ").append(F.cf.format((order_price*volume))).append("\n")
 					  .append("Signal     : ").append(iSignal).append("\n")
@@ -323,7 +330,7 @@ public class NewMonitorScheduler extends BaseScheduler {
 //
 					
 					double order_price = currCandle.getTrade_price() + price_unit;;
-					double volume = volume_unit/order_price;
+					double volume = volume_unit*multi_MIN/order_price;	//신저가의 경우 multi_MIN 적용
 					String side = "bid";
 
 					SignalModel signal = new SignalModel(currCandle.getCandle_date_time_utc(), currCandle.getCandle_date_time_kst(), iSignal, currCandle.getTrade_price(), volume, "N");
@@ -401,5 +408,88 @@ public class NewMonitorScheduler extends BaseScheduler {
 	private int checkCount = 0; 
 		 */
 		return "checkCount:" + checkCount + " ,date:" + snapShotCandle.getCandle_date_time_kst() + ", tradePrice:" + F.cf.format(snapShotCandle.getTrade_price()) + ", lastBuySignalPrice:" + F.cf.format(lastBuySignalPrice) + ", maxPrice:" + F.cf.format(maxPrice) + ", minPrice:" + F.cf.format(minPrice);
+	}
+	
+
+/*	
+	boolean bTrade = false;
+	private double fallRate = 0.002;			//매수기준 하락 폭 - 가장 최근 매수 가격보다 이 % 이상 떨어져야 매수 
+	private double raiseRate = 0.002;			//매도기준 상승 폭 - 가장 최근 매도 가격보다 이 % 이상 상승하면 매도 
+	private double volume_unit = 15000; 		//**********매수단위 15,000원
+	private double incomeLimitPercent = 0.002;	//**********매수 가격보다 incomeLimit 만큼 비싸게 팔아야 수수료 빼고 수익
+	private int multi_BB = 2;					//********** BB 하단 도달시 매수 비율 (volume_unit * multi_BB)
+	private int multi_MIN = 6;  				//********** 최저가 도달시 매수 비율 (volume_unit * multi_MIN)
+ */
+	
+	public boolean isbTrade() {
+		return bTrade;
+	}
+
+	public void setbTrade(boolean bTrade) {
+		this.bTrade = bTrade;
+	}
+
+	public double getFallRate() {
+		return fallRate;
+	}
+
+	public void setFallRate(double fallRate) {
+		this.fallRate = fallRate;
+	}
+
+	public double getRaiseRate() {
+		return raiseRate;
+	}
+
+	public void setRaiseRate(double raiseRate) {
+		this.raiseRate = raiseRate;
+	}
+
+	public double getVolume_unit() {
+		return volume_unit;
+	}
+
+	public void setVolume_unit(double volume_unit) {
+		this.volume_unit = volume_unit;
+	}
+
+	public double getIncomeLimitPercent() {
+		return incomeLimitPercent;
+	}
+
+	public void setIncomeLimitPercent(double incomeLimitPercent) {
+		this.incomeLimitPercent = incomeLimitPercent;
+	}
+
+	public int getMulti_BB() {
+		return multi_BB;
+	}
+
+	public void setMulti_BB(int multi_BB) {
+		this.multi_BB = multi_BB;
+	}
+
+	public int getMulti_MIN() {
+		return multi_MIN;
+	}
+
+	public void setMulti_MIN(int multi_MIN) {
+		this.multi_MIN = multi_MIN;
+	}
+
+	public int getiMinBaseUnit() {
+		return iMinBaseUnit;
+	}
+
+	public void setiMinBaseUnit(int iMinBaseUnit) {
+		this.iMinBaseUnit = iMinBaseUnit;
+	}
+
+	@Override
+	public String toString() {
+		return "NewMonitorScheduler [bTrade=" + bTrade + ", maxPrice=" + maxPrice + ", minPrice=" + minPrice
+				+ ", iMinBaseUnit=" + iMinBaseUnit + ", fallRate=" + fallRate + ", raiseRate=" + raiseRate
+				+ ", volume_unit=" + volume_unit + ", incomeLimitPercent=" + incomeLimitPercent + ", multi_BB="
+				+ multi_BB + ", multi_MIN=" + multi_MIN + "]";
 	}
 }

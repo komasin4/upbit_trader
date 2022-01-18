@@ -34,20 +34,36 @@ public class NewMonitorController {
 	
 	@GetMapping("/nset")
 	public String setValue(
-//							@RequestParam(value="20sig", required=false) Boolean bSet,
-//							@RequestParam(value="vol", required=false) Double vol,
-//							@RequestParam(value="income", required=false) Double incom,
-//							@RequestParam(value="minbase", required=false) Integer minbase,
-//							@RequestParam(value="mbb", required=false) Integer mbb,
-//							@RequestParam(value="mmin", required=false) Integer mmin,
-							@RequestParam(value="trade", defaultValue="false", required=false) Boolean bTrade
+							@RequestParam(value="fall", required=false) Double fall,
+							@RequestParam(value="raise", required=false) Double raise,
+							@RequestParam(value="volume", required=false) Double volume,
+							@RequestParam(value="income", required=false) Double income,
+							@RequestParam(value="minbase", required=false) Integer minbase,
+							@RequestParam(value="mbb", required=false) Integer mbb,
+							@RequestParam(value="mmin", required=false) Integer mmin,
+							@RequestParam(value="trade", required=false) Boolean trade
 						  )	{
 		
-		String rtnVal = "";
+		//String rtnVal = "";
 		
-		nScheduler.setBTrade(bTrade);
+		if(fall != null)
+			nScheduler.setFallRate(fall);
+		if(raise != null)
+			nScheduler.setFallRate(raise);
+		if(volume != null)
+			nScheduler.setFallRate(volume);
+		if(income != null)
+			nScheduler.setFallRate(income);
+		if(minbase != null)
+			nScheduler.setFallRate(minbase);
+		if(mbb != null)
+			nScheduler.setFallRate(mbb);
+		if(mmin != null)
+			nScheduler.setFallRate(mmin);
+		if(trade != null)
+			nScheduler.setbTrade(trade);
 		
-		return rtnVal;
+		return nScheduler.toString();
 		
 	}
 }
