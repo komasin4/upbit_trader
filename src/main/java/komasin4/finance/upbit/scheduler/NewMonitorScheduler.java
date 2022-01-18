@@ -176,6 +176,9 @@ public class NewMonitorScheduler extends BaseScheduler {
 					OrderModel order = new OrderModel(side, order_price, sell.getVolume());
 					boolean bExcuteSell = orderService.order(order);
 					logger.debug("bExcuteSell:" + bExcuteSell);
+					
+					StringBuffer sb = new StringBuffer();
+					
 					if(bExcuteSell)	{
 						sell.setUp_signal_price(order_price);
 						//sell.setUp_signal_type(signalType);
@@ -188,23 +191,24 @@ public class NewMonitorScheduler extends BaseScheduler {
 //								.append("매도수량 : ").append(vol.format(sell.getVolume())).append("\n")
 //								.append("매도금액 : ").append(currency.format((order_price*sell.getVolume()))).append("\n");
 						
-						StringBuffer sb = new StringBuffer()
-								.append("(*)")
-								.append(tmpStr)
-								.append(" 매도\n")
-								.append("매도가     : ").append(F.cf.format(order_price)).append("\n") 
-								.append("매도수량   : ").append(F.vf.format(sell.getVolume())).append("\n")
-								.append("매수금액   : ").append(F.cf.format((order_price*sell.getVolume()))).append("\n")
-								.append("Signal     : ").append(iSignal).append("\n")
-								.append("currPrice  : ").append(F.cf.format(currCandle.getTrade_price())).append("\n")
-								.append("lastPrice  : ").append(F.cf.format(lastSellSignalPrice)).append("\n")
-								.append("diff     % : ").append((lastSellSignalPrice - currCandle.getTrade_price())/lastSellSignalPrice).append("\n")
-								.append("raiseRate% : ").append(raiseRate);
-
-						sendMessageService.send(sb.toString());
-
 						//sendMessageService.send("신고가(매도):" + currency.format(order_price) + ":" +  vol.format(sell.getVolume()) + ":" + currency.format((order_price*sell.getVolume())));
+					} else {
+						sb.append("주문실패\n");
 					}
+					
+					sb.append("(*)")
+					  .append(tmpStr)
+					  .append(" 매도\n")
+					  .append("매도가     : ").append(F.cf.format(order_price)).append("\n") 
+					  .append("매도수량   : ").append(F.vf.format(sell.getVolume())).append("\n")
+					  .append("매수금액   : ").append(F.cf.format((order_price*sell.getVolume()))).append("\n")
+					  .append("Signal     : ").append(iSignal).append("\n")
+					  .append("currPrice  : ").append(F.cf.format(currCandle.getTrade_price())).append("\n")
+					  .append("lastPrice  : ").append(F.cf.format(lastSellSignalPrice)).append("\n")
+					  .append("diff     % : ").append((lastSellSignalPrice - currCandle.getTrade_price())/lastSellSignalPrice).append("\n")
+					  .append("raiseRate% : ").append(raiseRate);
+
+					sendMessageService.send(sb.toString());
 				}
 				
 				bSell = true;
@@ -227,22 +231,28 @@ public class NewMonitorScheduler extends BaseScheduler {
 
 					OrderModel order = new OrderModel(side, order_price, signal.getVolume());
 					boolean bExcuteSell = orderService.order(order);
+
+					StringBuffer sb = new StringBuffer();
+					
 					if(bExcuteSell)	{
 						candleMapper.insertTradeQueue(signal);
-						StringBuffer sb = new StringBuffer()
-								.append("(*)20선 도달 매수\n")
-								.append("매수가     : ").append(F.cf.format(order_price)).append("\n") 
-								.append("매수수량   : ").append(F.vf.format(volume)).append("\n")
-								.append("매수금액   : ").append(F.cf.format((order_price*volume))).append("\n")
-								.append("Signal     : ").append(iSignal).append("\n")
-								.append("currPrice  : ").append(F.cf.format(currCandle.getTrade_price())).append("\n")
-								.append("lastPrice  : ").append(F.cf.format(lastBuySignalPrice)).append("\n")
-								.append("diff     % : ").append((lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice).append("\n")
-								.append("baseRate % : ").append(fallRate);
-						sendMessageService.send(sb.toString());
 						//sendMessageService.send("20선 터치 (매수):" + currency.format(order_price) + ":" +  vol.format(volume) + ":" + currency.format((order_price*volume)));
 						bBuy = true;
+					} else {
+						sb.append("주문실패\n");
 					}
+
+					sb.append("(*)20선 도달 매수\n")
+					  .append("매수가     : ").append(F.cf.format(order_price)).append("\n") 
+					  .append("매수수량   : ").append(F.vf.format(volume)).append("\n")
+					  .append("매수금액   : ").append(F.cf.format((order_price*volume))).append("\n")
+					  .append("Signal     : ").append(iSignal).append("\n")
+					  .append("currPrice  : ").append(F.cf.format(currCandle.getTrade_price())).append("\n")
+					  .append("lastPrice  : ").append(F.cf.format(lastBuySignalPrice)).append("\n")
+					  .append("diff     % : ").append((lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice).append("\n")
+					  .append("baseRate % : ").append(fallRate);
+
+					sendMessageService.send(sb.toString());
 					
 					lastSellSignalPrice = 0;
 					lastBuySignalPrice = currCandle.getTrade_price();
@@ -289,21 +299,26 @@ public class NewMonitorScheduler extends BaseScheduler {
 
 					OrderModel order = new OrderModel(side, order_price, signal.getVolume());
 					boolean bExcuteSell = orderService.order(order);
+					
+					StringBuffer sb = new StringBuffer();
+					
 					if(bExcuteSell)	{
 						candleMapper.insertTradeQueue(signal);
-						StringBuffer sb = new StringBuffer()
-								.append("(*)신저가 도달 매수\n")
-								.append("매수가     : ").append(F.cf.format(order_price)).append("\n") 
-								.append("매수수량   : ").append(F.vf.format(volume)).append("\n")
-								.append("매수금액   : ").append(F.cf.format((order_price*volume))).append("\n")
-								.append("Signal     : ").append(iSignal).append("\n")
-								.append("currPrice  : ").append(F.cf.format(currCandle.getTrade_price())).append("\n")
-								.append("lastPrice  : ").append(F.cf.format(lastBuySignalPrice)).append("\n")
-								.append("diff     % : ").append((lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice).append("\n")
-								.append("baseRate % : ").append(fallRate);
-						sendMessageService.send(sb.toString());
 						//sendMessageService.send("20선 터치 (매수):" + currency.format(order_price) + ":" +  vol.format(volume) + ":" + currency.format((order_price*volume)));
+					} else {
+						sb.append("주문실패\n");
 					}
+
+					sb.append("(*)신저가 도달 매수\n")
+					  .append("매수가     : ").append(F.cf.format(order_price)).append("\n") 
+					  .append("매수수량   : ").append(F.vf.format(volume)).append("\n")
+					  .append("매수금액   : ").append(F.cf.format((order_price*volume))).append("\n")
+					  .append("Signal     : ").append(iSignal).append("\n")
+					  .append("currPrice  : ").append(F.cf.format(currCandle.getTrade_price())).append("\n")
+					  .append("lastPrice  : ").append(F.cf.format(lastBuySignalPrice)).append("\n")
+					  .append("diff     % : ").append((lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice).append("\n")
+					  .append("baseRate % : ").append(fallRate);
+					sendMessageService.send(sb.toString());
 
 					lastSellSignalPrice = 0;
 					lastBuySignalPrice = currCandle.getTrade_price();
