@@ -33,7 +33,7 @@ public class NewMonitorController {
 	}
 	
 	@GetMapping("/nset")
-	public String setValue(
+	public @ResponseBody String setValue(
 							@RequestParam(value="fall", required=false) Double fall,
 							@RequestParam(value="raise", required=false) Double raise,
 							@RequestParam(value="volume", required=false) Double volume,
@@ -49,17 +49,17 @@ public class NewMonitorController {
 		if(fall != null)
 			nScheduler.setFallRate(fall);
 		if(raise != null)
-			nScheduler.setFallRate(raise);
+			nScheduler.setRaiseRate(raise);
 		if(volume != null)
-			nScheduler.setFallRate(volume);
+			nScheduler.setVolume_unit(volume);
 		if(income != null)
-			nScheduler.setFallRate(income);
+			nScheduler.setIncomeLimitPercent(income);
 		if(minbase != null)
-			nScheduler.setFallRate(minbase);
+			nScheduler.setiMinBaseUnit(minbase);
 		if(mbb != null)
-			nScheduler.setFallRate(mbb);
+			nScheduler.setMulti_BB(mbb);
 		if(mmin != null)
-			nScheduler.setFallRate(mmin);
+			nScheduler.setMulti_MIN(mmin);
 		if(trade != null)
 			nScheduler.setbTrade(trade);
 		

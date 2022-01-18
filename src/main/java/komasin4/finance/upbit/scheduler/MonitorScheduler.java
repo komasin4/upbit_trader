@@ -107,10 +107,10 @@ public class MonitorScheduler {
 
 	@PostConstruct
 	public void start()	{
-		if("real".equals(activeProfile))	{
-			if(task == null)
-				task = taskScheduler.scheduleAtFixedRate(()->startMonitor(), initFixedRate);
-		}
+//		if("real".equals(activeProfile))	{
+//			if(task == null)
+//				task = taskScheduler.scheduleAtFixedRate(()->startMonitor(), initFixedRate);
+//		}
 	}
 	
 	//@Scheduled(initialDelay = 1000, fixedRate = 200)
