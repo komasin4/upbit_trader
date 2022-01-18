@@ -63,10 +63,7 @@
     <logger name="komasin4.finance.upbit.mapper" level="INFO">
     </logger>
 
-	<logger name="komasin4.finance.upbit.scheduler.MonitorScheduler" level="INFO">
-	</logger>
-
-	<logger name="komasin4.finance.upbit.scheduler.GetCandleScheduler" level="INFO">
+	<logger name="komasin4.finance.upbit.scheduler" level="DEBUG">
 	</logger>
 
     <root level="INFO">
