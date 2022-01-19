@@ -130,10 +130,6 @@ public class NewMonitorScheduler extends BaseScheduler {
 
 				List<MinuteCandleModel> preCandles = candleMapper.selectMinuteCandles(null, 3);
 				
-//				logger.debug("preCandles size = {}", preCandles.size());
-//				MinuteCandleModel candle_1 = preCandles.get(1);	
-//				MinuteCandleModel candle_2 = preCandles.get(2);
-				
 				int location_1 = MonitorUtil.getLocation(preCandles.get(1));
 				int location_2 = MonitorUtil.getLocation(preCandles.get(2));
 				
