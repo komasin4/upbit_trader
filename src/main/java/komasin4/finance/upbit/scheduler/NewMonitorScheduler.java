@@ -75,7 +75,7 @@ public class NewMonitorScheduler extends BaseScheduler {
 	//신저가 매수 이후 XX% 이상 하락 하면 추가 매수.
 	
 	
-	boolean bTrade = false;
+	boolean bTrade = true;
 	
 
 	private DayCandleModel todayCandle;
@@ -95,21 +95,21 @@ public class NewMonitorScheduler extends BaseScheduler {
 	private double fallRate = 0.003;			//매수기준 하락 폭 - 가장 최근 매수 가격보다 이 % 이상 떨어져야 매수 
 	private double raiseRate = 0.003;			//매도기준 상승 폭 - 가장 최근 매도 가격보다 이 % 이상 상승하면 매도 
 	private double volume_unit = 10000; 		//**********매수단위 15,000원
-	private double incomeLimitPercent = 0.002;	//**********매수 가격보다 incomeLimit 만큼 비싸게 팔아야 수수료 빼고 수익
+	private double incomeLimitPercent = 0.004;	//**********매수 가격보다 incomeLimit 만큼 비싸게 팔아야 수수료 빼고 수익
 	private int multi_BB = 3;					//********** BB 하단 도달시 매수 비율 (volume_unit * multi_BB)
-	private int multi_MIN = 10;  				//********** 최저가 도달시 매수 비율 (volume_unit * multi_MIN)
+	private int multi_MIN = 6;  				//********** 최저가 도달시 매수 비율 (volume_unit * multi_MIN)
 	
 	private String sellSignalTime;
 
 	@PostConstruct
 	public void startAuto()	{
 		
-//		if("office".equals(activeProfile) || "local".equals(activeProfile))	{
-//			if(task == null) {
-//				task = taskScheduler.scheduleAtFixedRate(()->start(), initFixedRate);
-//				//task = taskScheduler.scheduleAtFixedRate(()->start(), 2000);
-//			}
-//		}
+		if("office".equals(activeProfile) || "local".equals(activeProfile))	{
+			if(task == null) {
+				task = taskScheduler.scheduleAtFixedRate(()->start(), initFixedRate);
+				//task = taskScheduler.scheduleAtFixedRate(()->start(), 2000);
+			}
+		}
 	}
 	
 	@Override
