@@ -1,5 +1,7 @@
 package komasin4.finance.upbit.controller;
 
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,6 +10,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import komasin4.finance.upbit.mapper.CandleMapper;
+import komasin4.finance.upbit.model.MinuteCandleModel;
 import komasin4.finance.upbit.scheduler.NewMonitorScheduler;
 
 @Controller
@@ -16,6 +20,9 @@ public class NewMonitorController {
 	
 	@Autowired
 	NewMonitorScheduler nScheduler;
+	
+	@Autowired
+	CandleMapper candleMapper;
 	
 	@GetMapping("/nstart")
 	public @ResponseBody String start(@RequestParam(value = "rate", defaultValue="300") int iFixedRate)	{
@@ -65,5 +72,19 @@ public class NewMonitorController {
 		
 		return nScheduler.toString();
 		
+	}
+	
+	@GetMapping("/ntest")
+	public String nTest()	{
+		try {
+			List<MinuteCandleModel> preCandles = candleMapper.selectMinuteCandles(null, 3);
+			
+			logger.debug("ntest...");
+			
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return "ntest";
 	}
 }

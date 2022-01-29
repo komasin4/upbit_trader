@@ -124,12 +124,31 @@ public class NewMonitorScheduler extends BaseScheduler {
 			MinuteCandleModel currCandle = candles.get(0);	
 			MinuteCandleModel lastCandle = candles.get(1);
 			
+			if(snapShotCandle != null && lastCandle.getCandle_time().equals(snapShotCandle.getCandle_time()))	{
+				//이전 캔들이 BB 상단의 아래에서 위로 뚫고 올라 갔다면 매도 여부와 상관 없이 다음 매수 신호 발생시는 매수
+				logger.debug("candle_time 변경!!! {} -> {}", lastCandle.getCandle_time(), currCandle.getCandle_time());
+
+				List<MinuteCandleModel> preCandles = candleMapper.selectMinuteCandles(null, 3);
+				
+				int location_1 = MonitorUtil.getLocation(preCandles.get(1));
+				int location_2 = MonitorUtil.getLocation(preCandles.get(2));
+				
+				logger.debug("check location {} -> {}", location_2, location_1);
+				
+				if(location_1 >= 3 && location_2 < 3)	{
+					logger.info("lastBuySignalPrice reset by BB up : {} -> 0", lastBuySignalPrice);
+					lastBuySignalPrice = 0;
+				}
+			}
+			
+			
 			//고가,저가 정보 가져오기
 			Map<String, Double> valueMap = candleMapper.selectMaxMinValue(currCandle.getCandle_time(), iMinBaseUnit);
 			maxPrice = valueMap.get("maxPrice");
 			minPrice = valueMap.get("minPrice");
 
 			//일봉 정보 가져오기
+			try	{
 			if(todayCandle == null)	{	//최초 실생시 일봉 데이터 가져옴
 				todayCandle = candleService.getDayCandle().get(0);
 				logger.info("초기데이터 저장 (일봉) : " + todayCandle.toString());
@@ -140,6 +159,8 @@ public class NewMonitorScheduler extends BaseScheduler {
 					todayCandle = candleService.getDayCandle().get(0);
 					logger.info("일봉데이터 변경 : " + todayCandle.toString());
 				}
+			}} catch (Exception e)	{
+				todayCandle = new DayCandleModel();
 			}
 			
 			//현재 가격의 위치를 가져옴.
@@ -312,7 +333,7 @@ public class NewMonitorScheduler extends BaseScheduler {
 					sellSignalTime = currCandle.getCandle_time();
 					bBuy = true;
 				} else {
-					logger.debug("이평선({} 패스): {} : {} : {} : {}", iSignal, 
+					logger.trace("이평선({} 패스): {} : {} : {} : {}", iSignal, 
 							F.cf.format(currCandle.getTrade_price()), 
 							F.cf.format(lastBuySignalPrice), 
 							F.vf.format((lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice), 
@@ -391,7 +412,7 @@ public class NewMonitorScheduler extends BaseScheduler {
 //					sendMessageService.send(sb.toString());
 					
 				} else {
-					logger.debug("신저가(패스): {} : {} : {} : {}", 
+					logger.trace("신저가(패스): {} : {} : {} : {}", 
 							F.cf.format(currCandle.getTrade_price()), 
 							F.cf.format(lastBuySignalPrice), 
 							F.vf.format((lastBuySignalPrice - currCandle.getTrade_price())/lastBuySignalPrice), 
@@ -405,7 +426,7 @@ public class NewMonitorScheduler extends BaseScheduler {
 			//매도시 이전 매수 신호 무조건 리셋
 			if(bSell)	{
 				//lastBuySignalTime = null;
-				logger.info("lastBuySignalPrice reset : {} -> 0", lastBuySignalPrice);
+				logger.info("lastBuySignalPrice reset by bSell : {} -> 0", lastBuySignalPrice);
 				lastBuySignalPrice = 0;
 			}
 			

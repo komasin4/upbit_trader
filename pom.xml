@@ -109,6 +109,12 @@
                 -->
             </properties>
         </profile>
+        <profile>
+            <id>office</id>
+            <properties>
+                <environment>office</environment>
+            </properties>
+        </profile>
     </profiles>
 	<build>
 		<finalName>${artifactId}</finalName>
